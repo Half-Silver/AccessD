@@ -4,7 +4,15 @@
 
 SNAP_COMMON=${SNAP_COMMON:-/var/snap/accessd/common}
 CONFIG_DIR="$SNAP_COMMON/config"
+LEASES_DIR="$SNAP_COMMON/leases"
+LOGS_DIR="$SNAP_COMMON/logs"
 ROUTER_CONF="$CONFIG_DIR/router.conf"
+
+SNAP=${SNAP:-/snap/accessd/current}
+HOSTAPD_TEMPLATE="$SNAP/etc/accessd/hostapd.conf.template"
+DNSMASQ_TEMPLATE="$SNAP/etc/accessd/dnsmasq.conf.template"
+HOSTAPD_CONF="$CONFIG_DIR/hostapd.conf"
+DNSMASQ_CONF="$CONFIG_DIR/dnsmasq.conf"
 
 show_usage() {
     cat <<EOF
@@ -100,7 +108,7 @@ while [ $# -gt 0 ]; do
 done
 
 # Create config directory if needed
-mkdir -p "$CONFIG_DIR"
+mkdir -p "$CONFIG_DIR" "$LEASES_DIR" "$LOGS_DIR"
 
 # Load existing config or use defaults
 if [ -f "$ROUTER_CONF" ]; then
@@ -141,6 +149,28 @@ DHCP_START=$DHCP_START
 DHCP_END=$DHCP_END
 DHCP_LEASE=$DHCP_LEASE
 EOF
+
+if [ -f "$HOSTAPD_TEMPLATE" ]; then
+    sed \
+      -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \
+      -e "s|{{SSID}}|$SSID|g" \
+      -e "s|{{CHANNEL}}|$CHANNEL|g" \
+      -e "s|{{WPA_PASSPHRASE}}|$WPA_PASSPHRASE|g" \
+      "$HOSTAPD_TEMPLATE" > "$HOSTAPD_CONF"
+fi
+
+if [ -f "$DNSMASQ_TEMPLATE" ]; then
+    sed \
+      -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \
+      -e "s|{{DHCP_START}}|$DHCP_START|g" \
+      -e "s|{{DHCP_END}}|$DHCP_END|g" \
+      -e "s|{{LAN_NETMASK}}|$LAN_NETMASK|g" \
+      -e "s|{{DHCP_LEASE}}|$DHCP_LEASE|g" \
+      -e "s|{{LAN_IP}}|$LAN_IP|g" \
+      -e "s|{{LEASE_FILE}}|$LEASES_DIR/dnsmasq.leases|g" \
+      -e "s|{{LOG_FILE}}|$LOGS_DIR/dnsmasq.log|g" \
+      "$DNSMASQ_TEMPLATE" > "$DNSMASQ_CONF"
+fi
 
 echo "Configuration updated successfully!"
 echo ""

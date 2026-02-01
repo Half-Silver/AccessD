@@ -1,0 +1,74 @@
+#!/bin/bash
+set -e
+
+SNAP=${SNAP:-/snap/accessd/current}
+SNAP_COMMON=${SNAP_COMMON:-/var/snap/accessd/common}
+
+CONFIG_DIR="$SNAP_COMMON/config"
+LEASES_DIR="$SNAP_COMMON/leases"
+LOGS_DIR="$SNAP_COMMON/logs"
+
+mkdir -p "$CONFIG_DIR" "$LEASES_DIR" "$LOGS_DIR"
+
+ROUTER_CONF="$CONFIG_DIR/router.conf"
+
+if [ ! -f "$ROUTER_CONF" ]; then
+  cp "$SNAP/etc/accessd/router.conf.default" "$ROUTER_CONF"
+fi
+
+. "$ROUTER_CONF"
+
+NEW_SSID=$(snapctl get wifi.ssid 2>/dev/null || true)
+NEW_PASSWORD=$(snapctl get wifi.password 2>/dev/null || true)
+NEW_CHANNEL=$(snapctl get wifi.channel 2>/dev/null || true)
+NEW_WAN_INTERFACE=$(snapctl get network.wan-interface 2>/dev/null || true)
+NEW_LAN_INTERFACE=$(snapctl get network.lan-interface 2>/dev/null || true)
+NEW_LAN_IP=$(snapctl get network.lan-ip 2>/dev/null || true)
+NEW_DHCP_START=$(snapctl get dhcp.start 2>/dev/null || true)
+NEW_DHCP_END=$(snapctl get dhcp.end 2>/dev/null || true)
+NEW_DHCP_LEASE=$(snapctl get dhcp.lease 2>/dev/null || true)
+
+[ -n "$NEW_SSID" ] && SSID="$NEW_SSID"
+[ -n "$NEW_PASSWORD" ] && WPA_PASSPHRASE="$NEW_PASSWORD"
+[ -n "$NEW_CHANNEL" ] && CHANNEL="$NEW_CHANNEL"
+[ -n "$NEW_WAN_INTERFACE" ] && WAN_INTERFACE="$NEW_WAN_INTERFACE"
+[ -n "$NEW_LAN_INTERFACE" ] && LAN_INTERFACE="$NEW_LAN_INTERFACE"
+[ -n "$NEW_LAN_IP" ] && LAN_IP="$NEW_LAN_IP"
+[ -n "$NEW_DHCP_START" ] && DHCP_START="$NEW_DHCP_START"
+[ -n "$NEW_DHCP_END" ] && DHCP_END="$NEW_DHCP_END"
+[ -n "$NEW_DHCP_LEASE" ] && DHCP_LEASE="$NEW_DHCP_LEASE"
+
+cat > "$ROUTER_CONF" <<EOF
+WAN_INTERFACE=$WAN_INTERFACE
+LAN_INTERFACE=$LAN_INTERFACE
+SSID=$SSID
+WPA_PASSPHRASE=$WPA_PASSPHRASE
+CHANNEL=$CHANNEL
+LAN_IP=$LAN_IP
+LAN_NETMASK=$LAN_NETMASK
+DHCP_START=$DHCP_START
+DHCP_END=$DHCP_END
+DHCP_LEASE=$DHCP_LEASE
+EOF
+
+sed \
+  -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \
+  -e "s|{{SSID}}|$SSID|g" \
+  -e "s|{{CHANNEL}}|$CHANNEL|g" \
+  -e "s|{{WPA_PASSPHRASE}}|$WPA_PASSPHRASE|g" \
+  "$SNAP/etc/accessd/hostapd.conf.template" > "$CONFIG_DIR/hostapd.conf"
+
+sed \
+  -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \
+  -e "s|{{DHCP_START}}|$DHCP_START|g" \
+  -e "s|{{DHCP_END}}|$DHCP_END|g" \
+  -e "s|{{LAN_NETMASK}}|$LAN_NETMASK|g" \
+  -e "s|{{DHCP_LEASE}}|$DHCP_LEASE|g" \
+  -e "s|{{LAN_IP}}|$LAN_IP|g" \
+  -e "s|{{LEASE_FILE}}|$LEASES_DIR/dnsmasq.leases|g" \
+  -e "s|{{LOG_FILE}}|$LOGS_DIR/dnsmasq.log|g" \
+  "$SNAP/etc/accessd/dnsmasq.conf.template" > "$CONFIG_DIR/dnsmasq.conf"
+
+snapctl restart accessd.daemon 2>/dev/null || true
+snapctl restart accessd.dnsmasq 2>/dev/null || true
+snapctl restart accessd.hostapd 2>/dev/null || true

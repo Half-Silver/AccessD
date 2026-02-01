@@ -1,0 +1,116 @@
+#!/bin/bash
+set -e
+
+SNAP_COMMON=${SNAP_COMMON:-/var/snap/accessd/common}
+CONFIG_DIR="$SNAP_COMMON/config"
+ROUTER_CONF="$CONFIG_DIR/router.conf"
+
+mkdir -p "$CONFIG_DIR"
+
+netmask_to_prefix() {
+  case "$1" in
+    255.255.255.255) echo 32 ;;
+    255.255.255.254) echo 31 ;;
+    255.255.255.252) echo 30 ;;
+    255.255.255.248) echo 29 ;;
+    255.255.255.240) echo 28 ;;
+    255.255.255.224) echo 27 ;;
+    255.255.255.192) echo 26 ;;
+    255.255.255.128) echo 25 ;;
+    255.255.255.0) echo 24 ;;
+    255.255.254.0) echo 23 ;;
+    255.255.252.0) echo 22 ;;
+    255.255.248.0) echo 21 ;;
+    255.255.240.0) echo 20 ;;
+    255.255.224.0) echo 19 ;;
+    255.255.192.0) echo 18 ;;
+    255.255.128.0) echo 17 ;;
+    255.255.0.0) echo 16 ;;
+    255.254.0.0) echo 15 ;;
+    255.252.0.0) echo 14 ;;
+    255.248.0.0) echo 13 ;;
+    255.240.0.0) echo 12 ;;
+    255.224.0.0) echo 11 ;;
+    255.192.0.0) echo 10 ;;
+    255.128.0.0) echo 9 ;;
+    255.0.0.0) echo 8 ;;
+    *) echo 24 ;;
+  esac
+}
+
+ip_to_int() {
+  local ip="$1"
+  local a b c d
+  IFS=. read -r a b c d <<< "$ip"
+  echo $(( (a << 24) + (b << 16) + (c << 8) + d ))
+}
+
+int_to_ip() {
+  local ip_int="$1"
+  local a b c d
+  a=$(( (ip_int >> 24) & 255 ))
+  b=$(( (ip_int >> 16) & 255 ))
+  c=$(( (ip_int >> 8) & 255 ))
+  d=$(( ip_int & 255 ))
+  echo "$a.$b.$c.$d"
+}
+
+if [ -f "$ROUTER_CONF" ]; then
+  . "$ROUTER_CONF"
+else
+  WAN_INTERFACE="${WAN_INTERFACE:-eth0}"
+  LAN_INTERFACE="${LAN_INTERFACE:-wlan0}"
+  SSID="${SSID:-WiFiRouter}"
+  WPA_PASSPHRASE="${WPA_PASSPHRASE:-changeme123}"
+  CHANNEL="${CHANNEL:-6}"
+  LAN_IP="${LAN_IP:-192.168.50.1}"
+  LAN_NETMASK="${LAN_NETMASK:-255.255.255.0}"
+  DHCP_START="${DHCP_START:-192.168.50.100}"
+  DHCP_END="${DHCP_END:-192.168.50.200}"
+  DHCP_LEASE="${DHCP_LEASE:-12h}"
+
+  cat > "$ROUTER_CONF" <<EOF
+WAN_INTERFACE=$WAN_INTERFACE
+LAN_INTERFACE=$LAN_INTERFACE
+SSID=$SSID
+WPA_PASSPHRASE=$WPA_PASSPHRASE
+CHANNEL=$CHANNEL
+LAN_IP=$LAN_IP
+LAN_NETMASK=$LAN_NETMASK
+DHCP_START=$DHCP_START
+DHCP_END=$DHCP_END
+DHCP_LEASE=$DHCP_LEASE
+EOF
+fi
+
+PREFIX=$(netmask_to_prefix "$LAN_NETMASK")
+LAN_IP_INT=$(ip_to_int "$LAN_IP")
+LAN_MASK_INT=$(ip_to_int "$LAN_NETMASK")
+LAN_NET_INT=$(( LAN_IP_INT & LAN_MASK_INT ))
+LAN_NET_IP=$(int_to_ip "$LAN_NET_INT")
+LAN_CIDR="$LAN_NET_IP/$PREFIX"
+
+rfkill unblock wifi || true
+ip link set "$LAN_INTERFACE" up 2>/dev/null || true
+
+if ! ip addr show dev "$LAN_INTERFACE" | grep -q "inet $LAN_IP/"; then
+  ip addr flush dev "$LAN_INTERFACE" 2>/dev/null || true
+  ip addr add "$LAN_IP/$PREFIX" dev "$LAN_INTERFACE"
+fi
+
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+iptables -t nat -N ACCESSD_POSTROUTING 2>/dev/null || true
+iptables -t nat -F ACCESSD_POSTROUTING
+iptables -t nat -C POSTROUTING -j ACCESSD_POSTROUTING 2>/dev/null || iptables -t nat -A POSTROUTING -j ACCESSD_POSTROUTING
+iptables -t nat -C ACCESSD_POSTROUTING -s "$LAN_CIDR" -o "$WAN_INTERFACE" -j MASQUERADE 2>/dev/null || iptables -t nat -A ACCESSD_POSTROUTING -s "$LAN_CIDR" -o "$WAN_INTERFACE" -j MASQUERADE
+
+iptables -N ACCESSD_FORWARD 2>/dev/null || true
+iptables -F ACCESSD_FORWARD
+iptables -C FORWARD -j ACCESSD_FORWARD 2>/dev/null || iptables -A FORWARD -j ACCESSD_FORWARD
+iptables -C ACCESSD_FORWARD -i "$LAN_INTERFACE" -o "$WAN_INTERFACE" -j ACCEPT 2>/dev/null || iptables -A ACCESSD_FORWARD -i "$LAN_INTERFACE" -o "$WAN_INTERFACE" -j ACCEPT
+iptables -C ACCESSD_FORWARD -i "$WAN_INTERFACE" -o "$LAN_INTERFACE" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -A ACCESSD_FORWARD -i "$WAN_INTERFACE" -o "$LAN_INTERFACE" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+while true; do
+  sleep 3600
+done

@@ -19,7 +19,7 @@ architectures:
 
 apps:
   daemon:
-    command: bin/router-daemon
+    command: bin/nat-daemon
     daemon: simple
     restart-condition: always
     plugs:
@@ -29,6 +29,28 @@ apps:
       - firewall-control
       - network-setup-observe
       - network-setup-control
+
+  hostapd:
+    command: bin/hostapd-daemon
+    daemon: simple
+    restart-condition: on-failure
+    restart-delay: 10s
+    plugs:
+      - network
+      - network-control
+      - firewall-control
+      - network-setup-observe
+      - network-setup-control
+
+  dnsmasq:
+    command: bin/dnsmasq-daemon
+    daemon: simple
+    restart-condition: on-failure
+    restart-delay: 5s
+    plugs:
+      - network
+      - network-bind
+      - network-control
     
   configure:
     command: bin/configure
@@ -41,6 +63,16 @@ apps:
     plugs:
       - network
       - network-control
+
+hooks:
+  install:
+    plugs:
+      - network-control
+      - firewall-control
+  configure:
+    plugs:
+      - network-control
+      - firewall-control
 
 parts:
   hostapd:
@@ -84,3 +116,9 @@ parts:
       fi
     stage:
       - bin/*
+
+  templates:
+    plugin: dump
+    source: templates/
+    organize:
+      '*': etc/accessd/

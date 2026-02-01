@@ -1,0 +1,68 @@
+#!/bin/bash
+set -e
+
+SNAP_COMMON=${SNAP_COMMON:-/var/snap/accessd/common}
+CONFIG_DIR="$SNAP_COMMON/config"
+ROUTER_CONF="$CONFIG_DIR/router.conf"
+HOSTAPD_CONF="$CONFIG_DIR/hostapd.conf"
+TEMPLATE_CONF="$SNAP/etc/accessd/hostapd.conf.template"
+
+mkdir -p "$CONFIG_DIR"
+
+if [ -f "$ROUTER_CONF" ]; then
+  . "$ROUTER_CONF"
+else
+  WAN_INTERFACE="${WAN_INTERFACE:-eth0}"
+  LAN_INTERFACE="${LAN_INTERFACE:-wlan0}"
+  SSID="${SSID:-WiFiRouter}"
+  WPA_PASSPHRASE="${WPA_PASSPHRASE:-changeme123}"
+  CHANNEL="${CHANNEL:-6}"
+  LAN_IP="${LAN_IP:-192.168.50.1}"
+  LAN_NETMASK="${LAN_NETMASK:-255.255.255.0}"
+  DHCP_START="${DHCP_START:-192.168.50.100}"
+  DHCP_END="${DHCP_END:-192.168.50.200}"
+  DHCP_LEASE="${DHCP_LEASE:-12h}"
+
+  cat > "$ROUTER_CONF" <<EOF
+WAN_INTERFACE=$WAN_INTERFACE
+LAN_INTERFACE=$LAN_INTERFACE
+SSID=$SSID
+WPA_PASSPHRASE=$WPA_PASSPHRASE
+CHANNEL=$CHANNEL
+LAN_IP=$LAN_IP
+LAN_NETMASK=$LAN_NETMASK
+DHCP_START=$DHCP_START
+DHCP_END=$DHCP_END
+DHCP_LEASE=$DHCP_LEASE
+EOF
+fi
+
+if [ -f "$TEMPLATE_CONF" ]; then
+  sed \
+    -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \
+    -e "s|{{SSID}}|$SSID|g" \
+    -e "s|{{CHANNEL}}|$CHANNEL|g" \
+    -e "s|{{WPA_PASSPHRASE}}|$WPA_PASSPHRASE|g" \
+    "$TEMPLATE_CONF" > "$HOSTAPD_CONF"
+else
+  cat > "$HOSTAPD_CONF" <<EOF
+interface=$LAN_INTERFACE
+driver=nl80211
+ssid=$SSID
+hw_mode=g
+channel=$CHANNEL
+macaddr_acl=0
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=2
+wpa_passphrase=$WPA_PASSPHRASE
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+rsn_pairwise=CCMP
+EOF
+fi
+
+rfkill unblock wifi || true
+ip link set "$LAN_INTERFACE" up 2>/dev/null || true
+
+exec "$SNAP/usr/sbin/hostapd" "$HOSTAPD_CONF"

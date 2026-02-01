@@ -1,0 +1,72 @@
+#!/bin/bash
+set -e
+
+SNAP_COMMON=${SNAP_COMMON:-/var/snap/accessd/common}
+CONFIG_DIR="$SNAP_COMMON/config"
+LEASES_DIR="$SNAP_COMMON/leases"
+LOGS_DIR="$SNAP_COMMON/logs"
+ROUTER_CONF="$CONFIG_DIR/router.conf"
+DNSMASQ_CONF="$CONFIG_DIR/dnsmasq.conf"
+TEMPLATE_CONF="$SNAP/etc/accessd/dnsmasq.conf.template"
+
+mkdir -p "$CONFIG_DIR" "$LEASES_DIR" "$LOGS_DIR"
+
+if [ -f "$ROUTER_CONF" ]; then
+  . "$ROUTER_CONF"
+else
+  WAN_INTERFACE="${WAN_INTERFACE:-eth0}"
+  LAN_INTERFACE="${LAN_INTERFACE:-wlan0}"
+  SSID="${SSID:-WiFiRouter}"
+  WPA_PASSPHRASE="${WPA_PASSPHRASE:-changeme123}"
+  CHANNEL="${CHANNEL:-6}"
+  LAN_IP="${LAN_IP:-192.168.50.1}"
+  LAN_NETMASK="${LAN_NETMASK:-255.255.255.0}"
+  DHCP_START="${DHCP_START:-192.168.50.100}"
+  DHCP_END="${DHCP_END:-192.168.50.200}"
+  DHCP_LEASE="${DHCP_LEASE:-12h}"
+
+  cat > "$ROUTER_CONF" <<EOF
+WAN_INTERFACE=$WAN_INTERFACE
+LAN_INTERFACE=$LAN_INTERFACE
+SSID=$SSID
+WPA_PASSPHRASE=$WPA_PASSPHRASE
+CHANNEL=$CHANNEL
+LAN_IP=$LAN_IP
+LAN_NETMASK=$LAN_NETMASK
+DHCP_START=$DHCP_START
+DHCP_END=$DHCP_END
+DHCP_LEASE=$DHCP_LEASE
+EOF
+fi
+
+if [ -f "$TEMPLATE_CONF" ]; then
+  sed \
+    -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \
+    -e "s|{{DHCP_START}}|$DHCP_START|g" \
+    -e "s|{{DHCP_END}}|$DHCP_END|g" \
+    -e "s|{{LAN_NETMASK}}|$LAN_NETMASK|g" \
+    -e "s|{{DHCP_LEASE}}|$DHCP_LEASE|g" \
+    -e "s|{{LAN_IP}}|$LAN_IP|g" \
+    -e "s|{{LEASE_FILE}}|$LEASES_DIR/dnsmasq.leases|g" \
+    -e "s|{{LOG_FILE}}|$LOGS_DIR/dnsmasq.log|g" \
+    "$TEMPLATE_CONF" > "$DNSMASQ_CONF"
+else
+  cat > "$DNSMASQ_CONF" <<EOF
+interface=$LAN_INTERFACE
+bind-interfaces
+except-interface=lo
+server=8.8.8.8
+server=8.8.4.4
+domain-needed
+bogus-priv
+dhcp-range=$DHCP_START,$DHCP_END,$LAN_NETMASK,$DHCP_LEASE
+dhcp-option=option:router,$LAN_IP
+dhcp-option=option:dns-server,$LAN_IP
+dhcp-leasefile=$LEASES_DIR/dnsmasq.leases
+log-dhcp
+log-queries
+log-facility=$LOGS_DIR/dnsmasq.log
+EOF
+fi
+
+exec "$SNAP/usr/sbin/dnsmasq" --conf-file="$DNSMASQ_CONF" --no-daemon

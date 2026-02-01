@@ -4,6 +4,7 @@
 
 SNAP_COMMON=${SNAP_COMMON:-/var/snap/accessd/common}
 CONFIG_DIR="$SNAP_COMMON/config"
+LEASES_DIR="$SNAP_COMMON/leases"
 ROUTER_CONF="$CONFIG_DIR/router.conf"
 
 echo "WiFi Router Status"
@@ -57,13 +58,13 @@ echo ""
 
 # Check if processes are running
 echo "Services:"
-if pgrep -f "hostapd.*$LAN_INTERFACE" &>/dev/null; then
+if pgrep -f "(/usr/sbin/hostapd|/snap/.*/usr/sbin/hostapd).*hostapd\.conf" &>/dev/null; then
     echo "  ✓ hostapd (WiFi Access Point) is running"
 else
     echo "  ✗ hostapd is not running"
 fi
 
-if pgrep -f "dnsmasq.*$LAN_INTERFACE" &>/dev/null; then
+if pgrep -f "(/usr/sbin/dnsmasq|/snap/.*/usr/sbin/dnsmasq).*dnsmasq\.conf" &>/dev/null; then
     echo "  ✓ dnsmasq (DHCP/DNS) is running"
 else
     echo "  ✗ dnsmasq is not running"
@@ -87,11 +88,11 @@ fi
 echo ""
 
 # Show connected clients (if dnsmasq is running)
-if [ -f "/var/lib/misc/dnsmasq.leases" ]; then
-    CLIENTS=$(wc -l < /var/lib/misc/dnsmasq.leases)
+if [ -f "$LEASES_DIR/dnsmasq.leases" ]; then
+    CLIENTS=$(wc -l < "$LEASES_DIR/dnsmasq.leases")
     echo "Connected Clients: $CLIENTS"
     if [ "$CLIENTS" -gt 0 ]; then
         echo ""
-        awk '{print "  " $2 " - " $3 " (" $4 ")"}' /var/lib/misc/dnsmasq.leases
+        awk '{print "  " $2 " - " $3 " (" $4 ")"}' "$LEASES_DIR/dnsmasq.leases"
     fi
 fi

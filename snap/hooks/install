@@ -1,0 +1,37 @@
+#!/bin/bash
+set -e
+
+SNAP=${SNAP:-/snap/accessd/current}
+SNAP_COMMON=${SNAP_COMMON:-/var/snap/accessd/common}
+
+CONFIG_DIR="$SNAP_COMMON/config"
+LEASES_DIR="$SNAP_COMMON/leases"
+LOGS_DIR="$SNAP_COMMON/logs"
+
+mkdir -p "$CONFIG_DIR" "$LEASES_DIR" "$LOGS_DIR"
+
+ROUTER_CONF="$CONFIG_DIR/router.conf"
+
+if [ ! -f "$ROUTER_CONF" ]; then
+  cp "$SNAP/etc/accessd/router.conf.default" "$ROUTER_CONF"
+fi
+
+. "$ROUTER_CONF"
+
+sed \
+  -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \
+  -e "s|{{SSID}}|$SSID|g" \
+  -e "s|{{CHANNEL}}|$CHANNEL|g" \
+  -e "s|{{WPA_PASSPHRASE}}|$WPA_PASSPHRASE|g" \
+  "$SNAP/etc/accessd/hostapd.conf.template" > "$CONFIG_DIR/hostapd.conf"
+
+sed \
+  -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \
+  -e "s|{{DHCP_START}}|$DHCP_START|g" \
+  -e "s|{{DHCP_END}}|$DHCP_END|g" \
+  -e "s|{{LAN_NETMASK}}|$LAN_NETMASK|g" \
+  -e "s|{{DHCP_LEASE}}|$DHCP_LEASE|g" \
+  -e "s|{{LAN_IP}}|$LAN_IP|g" \
+  -e "s|{{LEASE_FILE}}|$LEASES_DIR/dnsmasq.leases|g" \
+  -e "s|{{LOG_FILE}}|$LOGS_DIR/dnsmasq.log|g" \
+  "$SNAP/etc/accessd/dnsmasq.conf.template" > "$CONFIG_DIR/dnsmasq.conf"
