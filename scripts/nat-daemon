@@ -135,8 +135,19 @@ LAN_NET_INT=$(( LAN_IP_INT & LAN_MASK_INT ))
 LAN_NET_IP=$(int_to_ip "$LAN_NET_INT")
 LAN_CIDR="$LAN_NET_IP/$PREFIX"
 
-rfkill unblock wifi || true
-ip link set "$LAN_INTERFACE" up 2>/dev/null || true
+echo "Initializing network interfaces..."
+
+# Ensure WiFi is unblocked
+if command -v rfkill >/dev/null; then
+  echo "Unblocking WiFi..."
+  rfkill unblock wifi || echo "Warning: Failed to unblock wifi"
+  rfkill list all || true
+fi
+
+# Bring up LAN interface
+echo "Bringing up $LAN_INTERFACE..."
+ip link set "$LAN_INTERFACE" up || echo "Error: Failed to bring up $LAN_INTERFACE"
+
 
 if ! ip addr show dev "$LAN_INTERFACE" | grep -q "inet $LAN_IP/"; then
   ip addr flush dev "$LAN_INTERFACE" 2>/dev/null || true

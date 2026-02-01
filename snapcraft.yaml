@@ -1,6 +1,6 @@
 name: accessd
-base: core22
-version: '1.0'
+base: core24
+adopt-info: scripts
 summary: WiFi Router for Mini PC
 description: |
   Turn your mini PC into a WiFi router with hostapd, dnsmasq, and NAT routing.
@@ -51,13 +51,13 @@ apps:
       - network
       - network-bind
       - network-control
-    
+
   configure:
     command: bin/configure
     plugs:
       - network
       - network-control
-      
+
   status:
     command: bin/status
     plugs:
@@ -82,30 +82,31 @@ parts:
       - hostapd
     override-build: |
       craftctl default
-      
+
   dnsmasq:
     plugin: nil
     stage-packages:
       - dnsmasq
     override-build: |
       craftctl default
-      
+
   network-tools:
     plugin: nil
     stage-packages:
       - iptables
       - iproute2
       - wireless-tools
+      - iw
       - rfkill
       - libatm1
     override-build: |
       craftctl default
-      
+
   scripts:
     plugin: dump
     source: scripts/
     organize:
-      '*': bin/
+      "*": bin/
     override-build: |
       rm -rf "$CRAFT_PART_INSTALL"
       mkdir -p "$CRAFT_PART_INSTALL"
@@ -115,6 +116,9 @@ parts:
       else
         find "$CRAFT_PART_INSTALL" -maxdepth 1 -type f -exec chmod +x {} +
       fi
+    override-pull: |
+      craftctl default
+      craftctl set-version $(git describe --tags --dirty --always | sed 's/^v//')
     stage:
       - bin/*
 
@@ -122,4 +126,4 @@ parts:
     plugin: dump
     source: templates/
     organize:
-      '*': etc/accessd/
+      "*": etc/accessd/
