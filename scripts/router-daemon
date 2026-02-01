@@ -1,0 +1,113 @@
+#!/bin/bash
+set -e
+
+# Router Daemon for WiFi Router Snap
+
+SNAP_DATA=${SNAP_DATA:-/var/snap/accessd/current}
+SNAP_COMMON=${SNAP_COMMON:-/var/snap/accessd/common}
+
+# Configuration file locations
+CONFIG_DIR="$SNAP_COMMON/config"
+HOSTAPD_CONF="$CONFIG_DIR/hostapd.conf"
+DNSMASQ_CONF="$CONFIG_DIR/dnsmasq.conf"
+ROUTER_CONF="$CONFIG_DIR/router.conf"
+
+# Create config directory if it doesn't exist
+mkdir -p "$CONFIG_DIR"
+
+# Load router configuration
+if [ -f "$ROUTER_CONF" ]; then
+    source "$ROUTER_CONF"
+else
+    # Default configuration
+    WAN_INTERFACE="${WAN_INTERFACE:-eth0}"
+    LAN_INTERFACE="${LAN_INTERFACE:-wlan0}"
+    SSID="${SSID:-WiFiRouter}"
+    WPA_PASSPHRASE="${WPA_PASSPHRASE:-changeme123}"
+    CHANNEL="${CHANNEL:-6}"
+    LAN_IP="${LAN_IP:-192.168.50.1}"
+    LAN_NETMASK="${LAN_NETMASK:-255.255.255.0}"
+    DHCP_START="${DHCP_START:-192.168.50.100}"
+    DHCP_END="${DHCP_END:-192.168.50.200}"
+    DHCP_LEASE="${DHCP_LEASE:-12h}"
+    
+    # Save default configuration
+    cat > "$ROUTER_CONF" <<EOF
+WAN_INTERFACE=$WAN_INTERFACE
+LAN_INTERFACE=$LAN_INTERFACE
+SSID=$SSID
+WPA_PASSPHRASE=$WPA_PASSPHRASE
+CHANNEL=$CHANNEL
+LAN_IP=$LAN_IP
+LAN_NETMASK=$LAN_NETMASK
+DHCP_START=$DHCP_START
+DHCP_END=$DHCP_END
+DHCP_LEASE=$DHCP_LEASE
+EOF
+fi
+
+# Generate hostapd configuration
+cat > "$HOSTAPD_CONF" <<EOF
+interface=$LAN_INTERFACE
+driver=nl80211
+ssid=$SSID
+hw_mode=g
+channel=$CHANNEL
+macaddr_acl=0
+auth_algs=1
+ignore_broadcast_ssid=0
+wpa=2
+wpa_passphrase=$WPA_PASSPHRASE
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+rsn_pairwise=CCMP
+EOF
+
+# Generate dnsmasq configuration
+cat > "$DNSMASQ_CONF" <<EOF
+interface=$LAN_INTERFACE
+bind-interfaces
+server=8.8.8.8
+server=8.8.4.4
+domain-needed
+bogus-priv
+dhcp-range=$DHCP_START,$DHCP_END,$LAN_NETMASK,$DHCP_LEASE
+EOF
+
+echo "Starting WiFi Router..."
+echo "WAN Interface: $WAN_INTERFACE"
+echo "LAN Interface: $LAN_INTERFACE"
+echo "SSID: $SSID"
+echo "LAN IP: $LAN_IP"
+
+# Unblock WiFi if blocked
+rfkill unblock wifi || true
+
+# Configure LAN interface
+ip addr flush dev $LAN_INTERFACE || true
+ip addr add ${LAN_IP}/24 dev $LAN_INTERFACE
+ip link set $LAN_INTERFACE up
+
+# Enable IP forwarding
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+# Configure NAT
+iptables -t nat -F
+iptables -t nat -A POSTROUTING -o $WAN_INTERFACE -j MASQUERADE
+iptables -A FORWARD -i $LAN_INTERFACE -o $WAN_INTERFACE -j ACCEPT
+iptables -A FORWARD -i $WAN_INTERFACE -o $LAN_INTERFACE -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+# Start dnsmasq
+echo "Starting DNSMASQ..."
+$SNAP/usr/sbin/dnsmasq -C "$DNSMASQ_CONF" --no-daemon --log-facility=- &
+DNSMASQ_PID=$!
+
+# Start hostapd
+echo "Starting HOSTAPD..."
+$SNAP/usr/sbin/hostapd "$HOSTAPD_CONF" &
+HOSTAPD_PID=$!
+
+# Wait for processes
+trap "kill $DNSMASQ_PID $HOSTAPD_PID 2>/dev/null || true" EXIT
+
+wait $DNSMASQ_PID $HOSTAPD_PID

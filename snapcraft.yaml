@@ -1,0 +1,80 @@
+name: accessd
+base: core22
+version: '1.0'
+summary: WiFi Router for Mini PC
+description: |
+  Turn your mini PC into a WiFi router with hostapd, dnsmasq, and NAT routing.
+  Provides a complete routing solution with DHCP, DNS, and wireless access point.
+
+grade: stable
+confinement: strict
+
+architectures:
+  - build-on: amd64
+  - build-on: arm64
+
+apps:
+  daemon:
+    command: bin/router-daemon
+    daemon: simple
+    restart-condition: always
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      - firewall-control
+      - network-setup-observe
+      - network-setup-control
+    
+  configure:
+    command: bin/configure
+    plugs:
+      - network
+      - network-control
+      
+  status:
+    command: bin/status
+    plugs:
+      - network
+      - network-control
+
+parts:
+  hostapd:
+    plugin: nil
+    stage-packages:
+      - hostapd
+    override-build: |
+      craftctl default
+      
+  dnsmasq:
+    plugin: nil
+    stage-packages:
+      - dnsmasq
+    override-build: |
+      craftctl default
+      
+  network-tools:
+    plugin: nil
+    stage-packages:
+      - iptables
+      - iproute2
+      - wireless-tools
+      - rfkill
+    override-build: |
+      craftctl default
+      
+  scripts:
+    plugin: dump
+    source: scripts/
+    organize:
+      '*': bin/
+    stage:
+      - bin/*
+
+plugs:
+  network:
+  network-bind:
+  network-control:
+  firewall-control:
+  network-setup-observe:
+  network-setup-control:

@@ -1,0 +1,97 @@
+#!/bin/bash
+
+# Status script for WiFi Router
+
+SNAP_COMMON=${SNAP_COMMON:-/var/snap/accessd/common}
+CONFIG_DIR="$SNAP_COMMON/config"
+ROUTER_CONF="$CONFIG_DIR/router.conf"
+
+echo "WiFi Router Status"
+echo "=================="
+echo ""
+
+# Load configuration
+if [ -f "$ROUTER_CONF" ]; then
+    source "$ROUTER_CONF"
+    
+    echo "Configuration:"
+    echo "  SSID: $SSID"
+    echo "  Channel: $CHANNEL"
+    echo "  LAN Interface: $LAN_INTERFACE"
+    echo "  WAN Interface: $WAN_INTERFACE"
+    echo "  LAN IP: $LAN_IP"
+    echo "  DHCP Range: $DHCP_START - $DHCP_END"
+    echo ""
+else
+    echo "No configuration found."
+    echo ""
+fi
+
+# Check if interfaces exist
+echo "Network Interfaces:"
+if ip link show "$WAN_INTERFACE" &>/dev/null; then
+    echo "  ✓ WAN Interface ($WAN_INTERFACE) exists"
+else
+    echo "  ✗ WAN Interface ($WAN_INTERFACE) not found"
+fi
+
+if ip link show "$LAN_INTERFACE" &>/dev/null; then
+    echo "  ✓ LAN Interface ($LAN_INTERFACE) exists"
+    
+    # Check if it's up
+    if ip link show "$LAN_INTERFACE" | grep -q "state UP"; then
+        echo "    Status: UP"
+    else
+        echo "    Status: DOWN"
+    fi
+    
+    # Show IP address
+    LAN_IP_ACTUAL=$(ip addr show "$LAN_INTERFACE" | grep "inet " | awk '{print $2}')
+    if [ -n "$LAN_IP_ACTUAL" ]; then
+        echo "    IP: $LAN_IP_ACTUAL"
+    fi
+else
+    echo "  ✗ LAN Interface ($LAN_INTERFACE) not found"
+fi
+echo ""
+
+# Check if processes are running
+echo "Services:"
+if pgrep -f "hostapd.*$LAN_INTERFACE" &>/dev/null; then
+    echo "  ✓ hostapd (WiFi Access Point) is running"
+else
+    echo "  ✗ hostapd is not running"
+fi
+
+if pgrep -f "dnsmasq.*$LAN_INTERFACE" &>/dev/null; then
+    echo "  ✓ dnsmasq (DHCP/DNS) is running"
+else
+    echo "  ✗ dnsmasq is not running"
+fi
+echo ""
+
+# Check IP forwarding
+echo "Routing:"
+if [ "$(cat /proc/sys/net/ipv4/ip_forward)" = "1" ]; then
+    echo "  ✓ IP forwarding enabled"
+else
+    echo "  ✗ IP forwarding disabled"
+fi
+
+# Check NAT rules
+if iptables -t nat -L POSTROUTING -n | grep -q MASQUERADE; then
+    echo "  ✓ NAT rules configured"
+else
+    echo "  ✗ NAT rules not found"
+fi
+echo ""
+
+# Show connected clients (if dnsmasq is running)
+if [ -f "/var/lib/misc/dnsmasq.leases" ]; then
+    CLIENTS=$(wc -l < /var/lib/misc/dnsmasq.leases)
+    echo "Connected Clients: $CLIENTS"
+    if [ "$CLIENTS" -gt 0 ]; then
+        echo ""
+        awk '{print "  " $2 " - " $3 " (" $4 ")"}' /var/lib/misc/dnsmasq.leases
+    fi
+fi

@@ -1,0 +1,150 @@
+#!/bin/bash
+
+# Configuration script for WiFi Router
+
+SNAP_COMMON=${SNAP_COMMON:-/var/snap/accessd/common}
+CONFIG_DIR="$SNAP_COMMON/config"
+ROUTER_CONF="$CONFIG_DIR/router.conf"
+
+show_usage() {
+    cat <<EOF
+WiFi Router Configuration Tool
+
+Usage: accessd.configure [OPTIONS]
+
+Options:
+  --ssid <name>              Set WiFi SSID (network name)
+  --password <pass>          Set WiFi password (min 8 characters)
+  --channel <num>            Set WiFi channel (1-13)
+  --wan-interface <name>     Set WAN interface (default: eth0)
+  --lan-interface <name>     Set LAN/WiFi interface (default: wlan0)
+  --lan-ip <ip>              Set LAN IP address (default: 192.168.50.1)
+  --dhcp-start <ip>          Set DHCP range start (default: 192.168.50.100)
+  --dhcp-end <ip>            Set DHCP range end (default: 192.168.50.200)
+  --show                     Show current configuration
+  --help                     Show this help message
+
+Examples:
+  accessd.configure --ssid MyNetwork --password SecurePass123
+  accessd.configure --channel 11 --lan-ip 192.168.1.1
+  accessd.configure --show
+
+After changing configuration, restart the router:
+  sudo snap restart accessd
+EOF
+}
+
+show_config() {
+    if [ -f "$ROUTER_CONF" ]; then
+        echo "Current Configuration:"
+        echo "====================="
+        cat "$ROUTER_CONF"
+    else
+        echo "No configuration found. Using defaults."
+    fi
+}
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --ssid)
+            NEW_SSID="$2"
+            shift 2
+            ;;
+        --password)
+            NEW_PASSWORD="$2"
+            if [ ${#NEW_PASSWORD} -lt 8 ]; then
+                echo "Error: Password must be at least 8 characters"
+                exit 1
+            fi
+            shift 2
+            ;;
+        --channel)
+            NEW_CHANNEL="$2"
+            shift 2
+            ;;
+        --wan-interface)
+            NEW_WAN_INTERFACE="$2"
+            shift 2
+            ;;
+        --lan-interface)
+            NEW_LAN_INTERFACE="$2"
+            shift 2
+            ;;
+        --lan-ip)
+            NEW_LAN_IP="$2"
+            shift 2
+            ;;
+        --dhcp-start)
+            NEW_DHCP_START="$2"
+            shift 2
+            ;;
+        --dhcp-end)
+            NEW_DHCP_END="$2"
+            shift 2
+            ;;
+        --show)
+            show_config
+            exit 0
+            ;;
+        --help)
+            show_usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Create config directory if needed
+mkdir -p "$CONFIG_DIR"
+
+# Load existing config or use defaults
+if [ -f "$ROUTER_CONF" ]; then
+    source "$ROUTER_CONF"
+else
+    WAN_INTERFACE="eth0"
+    LAN_INTERFACE="wlan0"
+    SSID="WiFiRouter"
+    WPA_PASSPHRASE="changeme123"
+    CHANNEL="6"
+    LAN_IP="192.168.50.1"
+    LAN_NETMASK="255.255.255.0"
+    DHCP_START="192.168.50.100"
+    DHCP_END="192.168.50.200"
+    DHCP_LEASE="12h"
+fi
+
+# Update values if provided
+[ -n "$NEW_SSID" ] && SSID="$NEW_SSID"
+[ -n "$NEW_PASSWORD" ] && WPA_PASSPHRASE="$NEW_PASSWORD"
+[ -n "$NEW_CHANNEL" ] && CHANNEL="$NEW_CHANNEL"
+[ -n "$NEW_WAN_INTERFACE" ] && WAN_INTERFACE="$NEW_WAN_INTERFACE"
+[ -n "$NEW_LAN_INTERFACE" ] && LAN_INTERFACE="$NEW_LAN_INTERFACE"
+[ -n "$NEW_LAN_IP" ] && LAN_IP="$NEW_LAN_IP"
+[ -n "$NEW_DHCP_START" ] && DHCP_START="$NEW_DHCP_START"
+[ -n "$NEW_DHCP_END" ] && DHCP_END="$NEW_DHCP_END"
+
+# Save configuration
+cat > "$ROUTER_CONF" <<EOF
+WAN_INTERFACE=$WAN_INTERFACE
+LAN_INTERFACE=$LAN_INTERFACE
+SSID=$SSID
+WPA_PASSPHRASE=$WPA_PASSPHRASE
+CHANNEL=$CHANNEL
+LAN_IP=$LAN_IP
+LAN_NETMASK=$LAN_NETMASK
+DHCP_START=$DHCP_START
+DHCP_END=$DHCP_END
+DHCP_LEASE=$DHCP_LEASE
+EOF
+
+echo "Configuration updated successfully!"
+echo ""
+show_config
+echo ""
+echo "To apply changes, restart the router:"
+echo "  sudo snap restart accessd"
