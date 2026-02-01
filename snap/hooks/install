@@ -12,11 +12,52 @@ mkdir -p "$CONFIG_DIR" "$LEASES_DIR" "$LOGS_DIR"
 
 ROUTER_CONF="$CONFIG_DIR/router.conf"
 
+load_router_conf() {
+  if [ ! -f "$ROUTER_CONF" ]; then
+    return 0
+  fi
+
+  # shellcheck disable=SC1090
+  if . "$ROUTER_CONF" 2>/dev/null; then
+    return 0
+  fi
+
+  while IFS= read -r line; do
+    case "$line" in
+      ''|\#*)
+        continue
+        ;;
+      *=*)
+        key=${line%%=*}
+        val=${line#*=}
+        case "$val" in
+          ""*"") val=${val#\"}; val=${val%\"} ;;
+          \'.*\') val=${val#\'}; val=${val%\'} ;;
+        esac
+        val=${val//\\ / }
+        val=${val//\\\\/\\}
+        case "$key" in
+          WAN_INTERFACE) WAN_INTERFACE="$val" ;;
+          LAN_INTERFACE) LAN_INTERFACE="$val" ;;
+          SSID) SSID="$val" ;;
+          WPA_PASSPHRASE) WPA_PASSPHRASE="$val" ;;
+          CHANNEL) CHANNEL="$val" ;;
+          LAN_IP) LAN_IP="$val" ;;
+          LAN_NETMASK) LAN_NETMASK="$val" ;;
+          DHCP_START) DHCP_START="$val" ;;
+          DHCP_END) DHCP_END="$val" ;;
+          DHCP_LEASE) DHCP_LEASE="$val" ;;
+        esac
+        ;;
+    esac
+  done < "$ROUTER_CONF"
+}
+
 if [ ! -f "$ROUTER_CONF" ]; then
   cp "$SNAP/etc/accessd/router.conf.default" "$ROUTER_CONF"
 fi
 
-. "$ROUTER_CONF"
+load_router_conf
 
 sed \
   -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \

@@ -12,11 +12,67 @@ mkdir -p "$CONFIG_DIR" "$LEASES_DIR" "$LOGS_DIR"
 
 ROUTER_CONF="$CONFIG_DIR/router.conf"
 
+load_router_conf() {
+  if [ ! -f "$ROUTER_CONF" ]; then
+    return 0
+  fi
+
+  # shellcheck disable=SC1090
+  if . "$ROUTER_CONF" 2>/dev/null; then
+    return 0
+  fi
+
+  while IFS= read -r line; do
+    case "$line" in
+      ''|\#*)
+        continue
+        ;;
+      *=*)
+        key=${line%%=*}
+        val=${line#*=}
+        case "$val" in
+          ""*"") val=${val#\"}; val=${val%\"} ;;
+          \'.*\') val=${val#\'}; val=${val%\'} ;;
+        esac
+        val=${val//\\ / }
+        val=${val//\\\\/\\}
+        case "$key" in
+          WAN_INTERFACE) WAN_INTERFACE="$val" ;;
+          LAN_INTERFACE) LAN_INTERFACE="$val" ;;
+          SSID) SSID="$val" ;;
+          WPA_PASSPHRASE) WPA_PASSPHRASE="$val" ;;
+          CHANNEL) CHANNEL="$val" ;;
+          LAN_IP) LAN_IP="$val" ;;
+          LAN_NETMASK) LAN_NETMASK="$val" ;;
+          DHCP_START) DHCP_START="$val" ;;
+          DHCP_END) DHCP_END="$val" ;;
+          DHCP_LEASE) DHCP_LEASE="$val" ;;
+        esac
+        ;;
+    esac
+  done < "$ROUTER_CONF"
+}
+
+write_router_conf() {
+  {
+    printf 'WAN_INTERFACE=%q\n' "$WAN_INTERFACE"
+    printf 'LAN_INTERFACE=%q\n' "$LAN_INTERFACE"
+    printf 'SSID=%q\n' "$SSID"
+    printf 'WPA_PASSPHRASE=%q\n' "$WPA_PASSPHRASE"
+    printf 'CHANNEL=%q\n' "$CHANNEL"
+    printf 'LAN_IP=%q\n' "$LAN_IP"
+    printf 'LAN_NETMASK=%q\n' "$LAN_NETMASK"
+    printf 'DHCP_START=%q\n' "$DHCP_START"
+    printf 'DHCP_END=%q\n' "$DHCP_END"
+    printf 'DHCP_LEASE=%q\n' "$DHCP_LEASE"
+  } > "$ROUTER_CONF"
+}
+
 if [ ! -f "$ROUTER_CONF" ]; then
   cp "$SNAP/etc/accessd/router.conf.default" "$ROUTER_CONF"
 fi
 
-. "$ROUTER_CONF"
+load_router_conf
 
 NEW_SSID=$(snapctl get wifi.ssid 2>/dev/null || true)
 NEW_PASSWORD=$(snapctl get wifi.password 2>/dev/null || true)
@@ -38,18 +94,7 @@ NEW_DHCP_LEASE=$(snapctl get dhcp.lease 2>/dev/null || true)
 [ -n "$NEW_DHCP_END" ] && DHCP_END="$NEW_DHCP_END"
 [ -n "$NEW_DHCP_LEASE" ] && DHCP_LEASE="$NEW_DHCP_LEASE"
 
-cat > "$ROUTER_CONF" <<EOF
-WAN_INTERFACE=$WAN_INTERFACE
-LAN_INTERFACE=$LAN_INTERFACE
-SSID=$SSID
-WPA_PASSPHRASE=$WPA_PASSPHRASE
-CHANNEL=$CHANNEL
-LAN_IP=$LAN_IP
-LAN_NETMASK=$LAN_NETMASK
-DHCP_START=$DHCP_START
-DHCP_END=$DHCP_END
-DHCP_LEASE=$DHCP_LEASE
-EOF
+write_router_conf
 
 sed \
   -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \
