@@ -74,6 +74,8 @@ parts:
     organize:
       '*': bin/
     override-build: |
+      rm -rf "$CRAFT_PART_INSTALL"
+      mkdir -p "$CRAFT_PART_INSTALL"
       craftctl default
       if [ -d "$CRAFT_PART_INSTALL/bin" ]; then
         find "$CRAFT_PART_INSTALL/bin" -maxdepth 1 -type f -exec chmod +x {} +
