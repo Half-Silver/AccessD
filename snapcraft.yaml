@@ -6,6 +6,10 @@ description: |
   Turn your mini PC into a WiFi router with hostapd, dnsmasq, and NAT routing.
   Provides a complete routing solution with DHCP, DNS, and wireless access point.
 
+title: AccessD WiFi Router
+license: MIT
+contact: https://github.com/yourusername/accessd
+
 grade: stable
 confinement: strict
 
@@ -60,6 +64,7 @@ parts:
       - iproute2
       - wireless-tools
       - rfkill
+      - libatm1
     override-build: |
       craftctl default
       
@@ -68,13 +73,8 @@ parts:
     source: scripts/
     organize:
       '*': bin/
+    override-build: |
+      craftctl default
+      chmod +x $CRAFT_PART_INSTALL/bin/*
     stage:
       - bin/*
-
-plugs:
-  network:
-  network-bind:
-  network-control:
-  firewall-control:
-  network-setup-observe:
-  network-setup-control:
