@@ -118,7 +118,7 @@ parts:
       fi
     override-pull: |
       craftctl default
-      craftctl set-version $(git describe --tags --dirty --always | sed 's/^v//')
+      craftctl set version=$(git describe --tags --dirty --always | sed 's/^v//')
     stage:
       - bin/*
 
