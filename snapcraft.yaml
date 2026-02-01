@@ -75,6 +75,10 @@ parts:
       '*': bin/
     override-build: |
       craftctl default
-      chmod +x $CRAFT_PART_INSTALL/bin/*
+      if [ -d "$CRAFT_PART_INSTALL/bin" ]; then
+        find "$CRAFT_PART_INSTALL/bin" -maxdepth 1 -type f -exec chmod +x {} +
+      else
+        find "$CRAFT_PART_INSTALL" -maxdepth 1 -type f -exec chmod +x {} +
+      fi
     stage:
       - bin/*
