@@ -1,5 +1,5 @@
 name: accessd
-base: core24
+base: core22
 adopt-info: scripts
 summary: WiFi Router for Mini PC
 description: |
@@ -13,9 +13,9 @@ contact: https://github.com/yourusername/accessd
 grade: stable
 confinement: strict
 
-platforms:
-  amd64:
-  arm64:
+architectures:
+  - build-on: amd64
+  - build-on: arm64
 
 apps:
   daemon:
