@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+arch_triplet=""
+case "$(uname -m)" in
+  x86_64)
+    arch_triplet="x86_64-linux-gnu"
+    ;;
+  aarch64|arm64)
+    arch_triplet="aarch64-linux-gnu"
+    ;;
+esac
+
+if [ -n "$arch_triplet" ]; then
+  base_libs="/snap/core24/current/lib/$arch_triplet:/snap/core24/current/usr/lib/$arch_triplet"
+  snap_libs="$SNAP/lib/$arch_triplet:$SNAP/usr/lib/$arch_triplet:$SNAP/lib:$SNAP/usr/lib"
+  export LD_LIBRARY_PATH="$base_libs:$snap_libs${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
+
+export PATH="$SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH"
+
+exec "$@"

@@ -1,5 +1,5 @@
 name: accessd
-base: core22
+base: core24
 adopt-info: scripts
 summary: WiFi Router for Mini PC
 description: |
@@ -13,12 +13,14 @@ contact: https://github.com/yourusername/accessd
 grade: stable
 confinement: strict
 
-architectures:
-  - build-on: amd64
-  - build-on: arm64
+platforms:
+  amd64:
+  arm64:
 
 apps:
   daemon:
+    command-chain:
+      - bin/setup-env
     command: bin/nat-daemon
     daemon: simple
     restart-condition: always
@@ -31,6 +33,8 @@ apps:
       - network-setup-control
 
   hostapd:
+    command-chain:
+      - bin/setup-env
     command: bin/hostapd-daemon
     daemon: simple
     restart-condition: on-failure
@@ -43,6 +47,8 @@ apps:
       - network-setup-control
 
   dnsmasq:
+    command-chain:
+      - bin/setup-env
     command: bin/dnsmasq-daemon
     daemon: simple
     restart-condition: on-failure
@@ -53,12 +59,16 @@ apps:
       - network-control
 
   configure:
+    command-chain:
+      - bin/setup-env
     command: bin/configure
     plugs:
       - network
       - network-control
 
   status:
+    command-chain:
+      - bin/setup-env
     command: bin/status
     plugs:
       - network
