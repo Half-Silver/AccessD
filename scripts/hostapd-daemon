@@ -63,6 +63,54 @@ write_router_conf() {
   } > "$ROUTER_CONF"
 }
 
+interface_exists() {
+  [ -n "$1" ] && ip link show "$1" >/dev/null 2>&1
+}
+
+detect_lan_interface() {
+  local iface iface_path
+
+  if command -v iw >/dev/null 2>&1; then
+    while IFS= read -r iface; do
+      if interface_exists "$iface"; then
+        printf '%s\n' "$iface"
+        return 0
+      fi
+    done < <(iw dev 2>/dev/null | awk '$1 == "Interface" { print $2 }')
+  fi
+
+  for iface_path in /sys/class/net/*; do
+    [ -d "$iface_path" ] || continue
+    iface=${iface_path##*/}
+    [ "$iface" = "lo" ] && continue
+    if [ -d "$iface_path/wireless" ] && interface_exists "$iface"; then
+      printf '%s\n' "$iface"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+validate_interfaces() {
+  local updated=0 detected_lan
+
+  if ! interface_exists "$LAN_INTERFACE"; then
+    if detected_lan=$(detect_lan_interface); then
+      echo "Configured LAN interface '$LAN_INTERFACE' not found; using '$detected_lan'." >&2
+      LAN_INTERFACE="$detected_lan"
+      updated=1
+    else
+      echo "Error: Configured LAN interface '$LAN_INTERFACE' not found and no wireless interface was detected." >&2
+      return 1
+    fi
+  fi
+
+  if [ "$updated" -eq 1 ]; then
+    write_router_conf
+  fi
+}
+
 mkdir -p "$CONFIG_DIR"
 
 if [ -f "$ROUTER_CONF" ]; then
@@ -82,6 +130,19 @@ else
   write_router_conf
 fi
 
+WAN_INTERFACE="${WAN_INTERFACE:-eth0}"
+LAN_INTERFACE="${LAN_INTERFACE:-wlan0}"
+SSID="${SSID:-WiFiRouter}"
+WPA_PASSPHRASE="${WPA_PASSPHRASE:-changeme123}"
+CHANNEL="${CHANNEL:-6}"
+LAN_IP="${LAN_IP:-192.168.50.1}"
+LAN_NETMASK="${LAN_NETMASK:-255.255.255.0}"
+DHCP_START="${DHCP_START:-192.168.50.100}"
+DHCP_END="${DHCP_END:-192.168.50.200}"
+DHCP_LEASE="${DHCP_LEASE:-12h}"
+
+validate_interfaces
+
 if [ -f "$TEMPLATE_CONF" ]; then
   sed \
     -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \
@@ -96,13 +157,15 @@ driver=nl80211
 ssid=$SSID
 hw_mode=g
 channel=$CHANNEL
+wmm_enabled=1
+ieee80211n=1
 macaddr_acl=0
 auth_algs=1
 ignore_broadcast_ssid=0
 wpa=2
 wpa_passphrase=$WPA_PASSPHRASE
 wpa_key_mgmt=WPA-PSK
-wpa_pairwise=TKIP
+wpa_pairwise=CCMP
 rsn_pairwise=CCMP
 EOF
 fi
