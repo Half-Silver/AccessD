@@ -12,6 +12,22 @@ mkdir -p "$CONFIG_DIR" "$LEASES_DIR" "$LOGS_DIR"
 
 ROUTER_CONF="$CONFIG_DIR/router.conf"
 
+snapctl_get() {
+  local key="$1"
+  local value
+
+  value="$(snapctl get "$key" 2>/dev/null || true)"
+  case "$value" in
+    ''|null)
+      return 1
+      ;;
+    *)
+      printf '%s\n' "$value"
+      return 0
+      ;;
+  esac
+}
+
 load_router_conf() {
   if [ ! -f "$ROUTER_CONF" ]; then
     return 0
@@ -74,15 +90,17 @@ fi
 
 load_router_conf
 
-NEW_SSID=$(snapctl get wifi.ssid 2>/dev/null || true)
-NEW_PASSWORD=$(snapctl get wifi.password 2>/dev/null || true)
-NEW_CHANNEL=$(snapctl get wifi.channel 2>/dev/null || true)
-NEW_WAN_INTERFACE=$(snapctl get network.wan-interface 2>/dev/null || true)
-NEW_LAN_INTERFACE=$(snapctl get network.lan-interface 2>/dev/null || true)
-NEW_LAN_IP=$(snapctl get network.lan-ip 2>/dev/null || true)
-NEW_DHCP_START=$(snapctl get dhcp.start 2>/dev/null || true)
-NEW_DHCP_END=$(snapctl get dhcp.end 2>/dev/null || true)
-NEW_DHCP_LEASE=$(snapctl get dhcp.lease 2>/dev/null || true)
+NEW_SSID=$(snapctl_get wifi.ssid || true)
+NEW_PASSWORD=$(snapctl_get wifi.password || true)
+NEW_CHANNEL=$(snapctl_get wifi.channel || true)
+NEW_WAN_INTERFACE=$(snapctl_get network.wan-interface || true)
+NEW_LAN_INTERFACE=$(snapctl_get network.lan-interface || true)
+NEW_LAN_IP=$(snapctl_get network.lan-ip || true)
+NEW_DHCP_START=$(snapctl_get dhcp.start || true)
+NEW_DHCP_END=$(snapctl_get dhcp.end || true)
+NEW_DHCP_LEASE=$(snapctl_get dhcp.lease || true)
+NEW_DNS_PORT=$(snapctl_get dns.port || true)
+NEW_DNS_SERVER=$(snapctl_get dns.server || true)
 
 [ -n "$NEW_SSID" ] && SSID="$NEW_SSID"
 [ -n "$NEW_PASSWORD" ] && WPA_PASSPHRASE="$NEW_PASSWORD"
@@ -95,6 +113,19 @@ NEW_DHCP_LEASE=$(snapctl get dhcp.lease 2>/dev/null || true)
 [ -n "$NEW_DHCP_LEASE" ] && DHCP_LEASE="$NEW_DHCP_LEASE"
 
 write_router_conf
+
+DNS_PORT="${NEW_DNS_PORT:-53}"
+DNS_SERVER="${NEW_DNS_SERVER:-$LAN_IP}"
+
+case "$DNS_PORT" in
+  ''|*[!0-9]*)
+    DNS_PORT=53
+    ;;
+esac
+
+if [ "$DNS_PORT" -gt 65535 ]; then
+  DNS_PORT=53
+fi
 
 sed \
   -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \
@@ -110,6 +141,8 @@ sed \
   -e "s|{{LAN_NETMASK}}|$LAN_NETMASK|g" \
   -e "s|{{DHCP_LEASE}}|$DHCP_LEASE|g" \
   -e "s|{{LAN_IP}}|$LAN_IP|g" \
+  -e "s|{{DNS_PORT}}|$DNS_PORT|g" \
+  -e "s|{{DNS_SERVER}}|$DNS_SERVER|g" \
   -e "s|{{LEASE_FILE}}|$LEASES_DIR/dnsmasq.leases|g" \
   -e "s|{{LOG_FILE}}|$LOGS_DIR/dnsmasq.log|g" \
   "$SNAP/etc/accessd/dnsmasq.conf.template" > "$CONFIG_DIR/dnsmasq.conf"
@@ -117,3 +150,4 @@ sed \
 snapctl restart accessd.daemon 2>/dev/null || true
 snapctl restart accessd.dnsmasq 2>/dev/null || true
 snapctl restart accessd.hostapd 2>/dev/null || true
+snapctl restart accessd.web-ui 2>/dev/null || true

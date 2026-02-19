@@ -55,6 +55,14 @@ accessd.status
 echo "http://<router-ip>:8080"
 ```
 
+Optional (if you also run Pi-hole on 8080):
+
+```bash
+sudo snap set accessd web-ui.port=8090
+sudo snap restart accessd.web-ui
+echo "http://<router-ip>:8090"
+```
+
 Login with:
 - username: `admin`
 - password: your current WiFi password
@@ -77,6 +85,18 @@ sudo snap logs accessd -f
 
 # Restart
 sudo snap restart accessd
+```
+
+## AccessD + Pi-hole (same device)
+
+```bash
+# Keep AccessD for AP/NAT/DHCP, let Pi-hole own DNS :53
+sudo snap set accessd dns.port=0
+sudo snap set accessd dns.server=192.168.50.1
+sudo snap set accessd web-ui.port=8090
+
+sudo snap restart accessd.dnsmasq accessd.web-ui
+sudo snap start pi-hole-snap.pihole-ftl
 ```
 
 ## Local No-Docker Web UI (Development)

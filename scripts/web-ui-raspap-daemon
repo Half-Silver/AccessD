@@ -4,8 +4,8 @@ set -euo pipefail
 SNAP="${SNAP:-/snap/accessd/current}"
 SNAP_COMMON="${SNAP_COMMON:-/var/snap/accessd/common}"
 
-ACCESSD_WEBUI_HOST="${ACCESSD_WEBUI_HOST:-0.0.0.0}"
-ACCESSD_WEBUI_PORT="${ACCESSD_WEBUI_PORT:-8080}"
+ACCESSD_WEBUI_HOST="${ACCESSD_WEBUI_HOST:-}"
+ACCESSD_WEBUI_PORT="${ACCESSD_WEBUI_PORT:-}"
 ACCESSD_RASPAP_DISPLAY_ERRORS="${ACCESSD_RASPAP_DISPLAY_ERRORS:-0}"
 ACCESSD_RASPAP_ERROR_REPORTING="${ACCESSD_RASPAP_ERROR_REPORTING:-E_ALL & ~E_DEPRECATED & ~E_WARNING & ~E_NOTICE}"
 
@@ -14,6 +14,54 @@ ROUTER_SCRIPT="${ACCESSD_WEBUI_ROUTER:-$SNAP/bin/web-ui-raspap-router.php}"
 CONFIG_DIR="$SNAP_COMMON/config"
 LEASES_DIR="$SNAP_COMMON/leases"
 LOGS_DIR="$SNAP_COMMON/logs"
+
+snapctl_get() {
+  local key="$1"
+  local value
+
+  if ! command -v snapctl >/dev/null 2>&1; then
+    return 1
+  fi
+
+  value="$(snapctl get "$key" 2>/dev/null || true)"
+  case "$value" in
+    ''|null)
+      return 1
+      ;;
+    *)
+      printf '%s\n' "$value"
+      return 0
+      ;;
+  esac
+}
+
+if [ -z "$ACCESSD_WEBUI_HOST" ] && snap_value="$(snapctl_get web-ui.host)"; then
+  ACCESSD_WEBUI_HOST="$snap_value"
+fi
+
+if [ -z "$ACCESSD_WEBUI_PORT" ] && snap_value="$(snapctl_get web-ui.port)"; then
+  ACCESSD_WEBUI_PORT="$snap_value"
+fi
+
+ACCESSD_WEBUI_HOST="${ACCESSD_WEBUI_HOST:-0.0.0.0}"
+ACCESSD_WEBUI_PORT="${ACCESSD_WEBUI_PORT:-8080}"
+
+case "$ACCESSD_WEBUI_PORT" in
+  ''|*[!0-9]*)
+    echo "Invalid web-ui.port '$ACCESSD_WEBUI_PORT'; using 8080." >&2
+    ACCESSD_WEBUI_PORT=8080
+    ;;
+esac
+
+if [ "$ACCESSD_WEBUI_PORT" -gt 65535 ]; then
+  echo "Invalid web-ui.port '$ACCESSD_WEBUI_PORT'; using 8080." >&2
+  ACCESSD_WEBUI_PORT=8080
+fi
+
+if [ "$ACCESSD_WEBUI_PORT" -eq 0 ]; then
+  echo "Invalid web-ui.port '$ACCESSD_WEBUI_PORT'; using 8080." >&2
+  ACCESSD_WEBUI_PORT=8080
+fi
 
 find_php_bin() {
   local candidate

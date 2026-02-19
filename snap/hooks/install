@@ -59,6 +59,9 @@ fi
 
 load_router_conf
 
+DNS_PORT=53
+DNS_SERVER="${LAN_IP:-192.168.50.1}"
+
 sed \
   -e "s|{{LAN_INTERFACE}}|$LAN_INTERFACE|g" \
   -e "s|{{SSID}}|$SSID|g" \
@@ -73,6 +76,8 @@ sed \
   -e "s|{{LAN_NETMASK}}|$LAN_NETMASK|g" \
   -e "s|{{DHCP_LEASE}}|$DHCP_LEASE|g" \
   -e "s|{{LAN_IP}}|$LAN_IP|g" \
+  -e "s|{{DNS_PORT}}|$DNS_PORT|g" \
+  -e "s|{{DNS_SERVER}}|$DNS_SERVER|g" \
   -e "s|{{LEASE_FILE}}|$LEASES_DIR/dnsmasq.leases|g" \
   -e "s|{{LOG_FILE}}|$LOGS_DIR/dnsmasq.log|g" \
   "$SNAP/etc/accessd/dnsmasq.conf.template" > "$CONFIG_DIR/dnsmasq.conf"

@@ -9,6 +9,26 @@ ROUTER_CONF="$CONFIG_DIR/router.conf"
 DNSMASQ_CONF="$CONFIG_DIR/dnsmasq.conf"
 TEMPLATE_CONF="$SNAP/etc/accessd/dnsmasq.conf.template"
 
+snapctl_get() {
+  local key="$1"
+  local value
+
+  if ! command -v snapctl >/dev/null 2>&1; then
+    return 1
+  fi
+
+  value="$(snapctl get "$key" 2>/dev/null || true)"
+  case "$value" in
+    ''|null)
+      return 1
+      ;;
+    *)
+      printf '%s\n' "$value"
+      return 0
+      ;;
+  esac
+}
+
 load_router_conf() {
   if [ ! -f "$ROUTER_CONF" ]; then
     return 0
@@ -142,6 +162,28 @@ LAN_NETMASK="${LAN_NETMASK:-255.255.255.0}"
 DHCP_START="${DHCP_START:-192.168.50.100}"
 DHCP_END="${DHCP_END:-192.168.50.200}"
 DHCP_LEASE="${DHCP_LEASE:-12h}"
+DNS_PORT="${DNS_PORT:-53}"
+DNS_SERVER="${DNS_SERVER:-$LAN_IP}"
+
+if snap_value="$(snapctl_get dns.port)"; then
+  DNS_PORT="$snap_value"
+fi
+
+if snap_value="$(snapctl_get dns.server)"; then
+  DNS_SERVER="$snap_value"
+fi
+
+case "$DNS_PORT" in
+  ''|*[!0-9]*)
+    echo "Invalid dns.port '$DNS_PORT'; using 53." >&2
+    DNS_PORT=53
+    ;;
+esac
+
+if [ "$DNS_PORT" -gt 65535 ]; then
+  echo "Invalid dns.port '$DNS_PORT'; using 53." >&2
+  DNS_PORT=53
+fi
 
 validate_interfaces
 
@@ -153,6 +195,8 @@ if [ -f "$TEMPLATE_CONF" ]; then
     -e "s|{{LAN_NETMASK}}|$LAN_NETMASK|g" \
     -e "s|{{DHCP_LEASE}}|$DHCP_LEASE|g" \
     -e "s|{{LAN_IP}}|$LAN_IP|g" \
+    -e "s|{{DNS_PORT}}|$DNS_PORT|g" \
+    -e "s|{{DNS_SERVER}}|$DNS_SERVER|g" \
     -e "s|{{LEASE_FILE}}|$LEASES_DIR/dnsmasq.leases|g" \
     -e "s|{{LOG_FILE}}|$LOGS_DIR/dnsmasq.log|g" \
     "$TEMPLATE_CONF" > "$DNSMASQ_CONF"
@@ -161,13 +205,14 @@ else
 interface=$LAN_INTERFACE
 bind-interfaces
 except-interface=lo
+port=$DNS_PORT
 server=8.8.8.8
 server=8.8.4.4
 domain-needed
 bogus-priv
 dhcp-range=$DHCP_START,$DHCP_END,$LAN_NETMASK,$DHCP_LEASE
 dhcp-option=option:router,$LAN_IP
-dhcp-option=option:dns-server,$LAN_IP
+dhcp-option=option:dns-server,$DNS_SERVER
 dhcp-leasefile=$LEASES_DIR/dnsmasq.leases
 log-dhcp
 log-queries

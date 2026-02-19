@@ -10,7 +10,7 @@ Turn your mini PC into a WiFi router with this Ubuntu Core snap package.
 - **NAT Routing**: Share internet connection from WAN to WiFi clients
 - **Easy Configuration**: Simple command-line configuration tool
 - **Status Monitoring**: Check router status and connected clients
-- **Web Management UI**: Browser-based router dashboard on port 8080
+- **Web Management UI**: Browser-based router dashboard (default port 8080, configurable)
 - **Parental Controls**: Per-device internet blocking (always-on or scheduled)
 
 ## Prerequisites
@@ -96,6 +96,19 @@ sudo accessd.configure --lan-ip 192.168.1.1 \
 accessd.configure --show
 ```
 
+### Optional Snap Settings
+
+```bash
+# Move AccessD UI to another port (example: keep 8080 free for Pi-hole)
+sudo snap set accessd web-ui.port=8090
+
+# Run AccessD dnsmasq in DHCP-only mode (disable DNS listener on :53)
+sudo snap set accessd dns.port=0
+
+# Advertise DNS server to clients (for Pi-hole on the same box)
+sudo snap set accessd dns.server=192.168.50.1
+```
+
 ### Configuration Options
 
 | Option | Description | Default |
@@ -126,6 +139,8 @@ Once installed, the management interface is available at:
 ```text
 http://<router-ip>:8080
 ```
+
+If `web-ui.port` is set, use that port instead.
 
 Default login:
 
@@ -214,6 +229,22 @@ sudo rfkill unblock wifi
 2. Check NAT rules: `sudo iptables -t nat -L -n`
 3. Verify IP forwarding is enabled
 4. Check DNS: `accessd.configure --show`
+
+### Run AccessD with Pi-hole
+
+Use AccessD for AP/NAT/DHCP and Pi-hole for DNS filtering:
+
+```bash
+# AccessD web UI on 8090, Pi-hole can keep 8080
+sudo snap set accessd web-ui.port=8090
+
+# DHCP only in AccessD dnsmasq, free :53 for Pi-hole
+sudo snap set accessd dns.port=0
+sudo snap set accessd dns.server=192.168.50.1
+
+sudo snap restart accessd.web-ui accessd.dnsmasq
+sudo snap start pi-hole-snap.pihole-ftl
+```
 
 ## Network Diagram
 

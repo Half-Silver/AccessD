@@ -1,13 +1,14 @@
 interface={{LAN_INTERFACE}}
 bind-interfaces
 except-interface=lo
+port={{DNS_PORT}}
 server=8.8.8.8
 server=8.8.4.4
 domain-needed
 bogus-priv
 dhcp-range={{DHCP_START}},{{DHCP_END}},{{LAN_NETMASK}},{{DHCP_LEASE}}
 dhcp-option=option:router,{{LAN_IP}}
-dhcp-option=option:dns-server,{{LAN_IP}}
+dhcp-option=option:dns-server,{{DNS_SERVER}}
 dhcp-leasefile={{LEASE_FILE}}
 log-dhcp
 log-queries

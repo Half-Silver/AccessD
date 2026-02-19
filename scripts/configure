@@ -192,6 +192,9 @@ fi
 [ -n "$NEW_DHCP_START" ] && DHCP_START="$NEW_DHCP_START"
 [ -n "$NEW_DHCP_END" ] && DHCP_END="$NEW_DHCP_END"
 
+DNS_PORT="${DNS_PORT:-53}"
+DNS_SERVER="${DNS_SERVER:-$LAN_IP}"
+
 # Save configuration
 write_router_conf
 
@@ -212,6 +215,8 @@ if [ -f "$DNSMASQ_TEMPLATE" ]; then
       -e "s|{{LAN_NETMASK}}|$LAN_NETMASK|g" \
       -e "s|{{DHCP_LEASE}}|$DHCP_LEASE|g" \
       -e "s|{{LAN_IP}}|$LAN_IP|g" \
+      -e "s|{{DNS_PORT}}|$DNS_PORT|g" \
+      -e "s|{{DNS_SERVER}}|$DNS_SERVER|g" \
       -e "s|{{LEASE_FILE}}|$LEASES_DIR/dnsmasq.leases|g" \
       -e "s|{{LOG_FILE}}|$LOGS_DIR/dnsmasq.log|g" \
       "$DNSMASQ_TEMPLATE" > "$DNSMASQ_CONF"
