@@ -101,6 +101,12 @@ if [ ! -f "$CONFIG_DIR/networking/defaults.json" ] && [ -f "$WEBROOT/config/defa
   cp "$WEBROOT/config/defaults.json" "$CONFIG_DIR/networking/defaults.json"
 fi
 
+# Some upstream pages include includes/config.php directly.
+# Keep runtime resilient even if only config/config.php is tracked in source.
+if [ ! -f "$WEBROOT/includes/config.php" ] && [ -f "$WEBROOT/config/config.php" ]; then
+  cp "$WEBROOT/config/config.php" "$WEBROOT/includes/config.php"
+fi
+
 if [ ! -f "$CONFIG_DIR/accessd.auth" ]; then
   # Default credentials for first boot: admin / secret
   default_hash="$("$PHP_BIN" -r 'echo password_hash("secret", PASSWORD_BCRYPT);')"
