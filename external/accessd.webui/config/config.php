@@ -11,6 +11,31 @@ if (!function_exists('accessd_env')) {
     }
 }
 
+// Fallbacks for environments where ext-ctype is not available.
+if (!function_exists('ctype_digit')) {
+    function ctype_digit($text): bool
+    {
+        $value = (string) $text;
+        return $value !== '' && preg_match('/^[0-9]+$/', $value) === 1;
+    }
+}
+
+if (!function_exists('ctype_xdigit')) {
+    function ctype_xdigit($text): bool
+    {
+        $value = (string) $text;
+        return $value !== '' && preg_match('/^[A-Fa-f0-9]+$/', $value) === 1;
+    }
+}
+
+if (!function_exists('ctype_print')) {
+    function ctype_print($text): bool
+    {
+        $value = (string) $text;
+        return $value !== '' && preg_match('/^[\x20-\x7E]+$/', $value) === 1;
+    }
+}
+
 define('RASPI_BRAND_TEXT', 'AccessD');
 define('RASPI_BRAND_TITLE', RASPI_BRAND_TEXT.' Admin Panel');
 define('RASPI_CONFIG', accessd_env('ACCESSD_RASPI_CONFIG', '/etc/accessd'));
