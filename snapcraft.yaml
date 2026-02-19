@@ -122,6 +122,8 @@ parts:
       - iw
       - rfkill
       - php8.3-cli
+      - php8.3-gettext
+      - php8.3-mbstring
       - procps
       - sysvinit-utils
       - wget

@@ -51,6 +51,13 @@ class ExceptionHandler
             );
             error_log($errorMessage, 3, RASPI_ERROR_LOG);
 
+            $exception = new \ErrorException(
+                $error['message'] ?? 'Shutdown error',
+                0,
+                $error['type'] ?? E_ERROR,
+                $error['file'] ?? __FILE__,
+                $error['line'] ?? __LINE__
+            );
             $renderer = new HtmlErrorRenderer();
             $renderer->render($exception);
         }
@@ -66,4 +73,3 @@ class ExceptionHandler
         register_shutdown_function(array($this, 'handleShutdown'));
     }
 }
-

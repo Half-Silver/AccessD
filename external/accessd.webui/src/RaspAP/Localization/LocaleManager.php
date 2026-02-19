@@ -229,9 +229,15 @@ class LocaleManager
         $localeDomain = defined('LOCALE_DOMAIN') ? LOCALE_DOMAIN : 'messages';
         $localeRoot = defined('LOCALE_ROOT') ? LOCALE_ROOT : 'locale';
 
-        bindtextdomain($localeDomain, $localeRoot);
-        bind_textdomain_codeset($localeDomain, 'UTF-8');
-        textdomain($localeDomain);
+        if (function_exists('bindtextdomain')) {
+            bindtextdomain($localeDomain, $localeRoot);
+        }
+        if (function_exists('bind_textdomain_codeset')) {
+            bind_textdomain_codeset($localeDomain, 'UTF-8');
+        }
+        if (function_exists('textdomain')) {
+            textdomain($localeDomain);
+        }
     }
 
     /**
