@@ -1,0 +1,79 @@
+#!/bin/bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WEBROOT="$ROOT_DIR/external/accessd.webui"
+SNAP_COMMON="${SNAP_COMMON:-$ROOT_DIR/.dev/snap-common}"
+
+ACCESSD_RASPAP_HOST="${ACCESSD_RASPAP_HOST:-127.0.0.1}"
+ACCESSD_RASPAP_PORT="${ACCESSD_RASPAP_PORT:-8090}"
+ACCESSD_RASPAP_DISPLAY_ERRORS="${ACCESSD_RASPAP_DISPLAY_ERRORS:-0}"
+ACCESSD_RASPAP_ERROR_REPORTING="${ACCESSD_RASPAP_ERROR_REPORTING:-E_ALL & ~E_DEPRECATED & ~E_WARNING & ~E_NOTICE}"
+CONFIG_DIR="$SNAP_COMMON/config"
+LEASES_DIR="$SNAP_COMMON/leases"
+LOGS_DIR="$SNAP_COMMON/logs"
+
+if ! command -v php >/dev/null 2>&1; then
+  cat <<'EOF'
+php is not installed, so the cloned RaspAP-based UI cannot run.
+
+Install PHP first, then run:
+  npm run webui:raspap
+EOF
+  exit 1
+fi
+
+if [ ! -d "$WEBROOT" ]; then
+  echo "Missing web root: $WEBROOT"
+  exit 1
+fi
+
+mkdir -p "$CONFIG_DIR" "$LEASES_DIR" "$LOGS_DIR"
+mkdir -p "$CONFIG_DIR/networking" "$CONFIG_DIR/api" "$CONFIG_DIR/dnsmasq.d" "$CONFIG_DIR/adblock"
+
+if [ ! -f "$CONFIG_DIR/networking/defaults.json" ] && [ -f "$WEBROOT/config/defaults.json" ]; then
+  cp "$WEBROOT/config/defaults.json" "$CONFIG_DIR/networking/defaults.json"
+fi
+
+if [ ! -f "$CONFIG_DIR/accessd.auth" ]; then
+  default_hash="$(php -r 'echo password_hash("secret", PASSWORD_BCRYPT);')"
+  {
+    echo "admin"
+    echo "$default_hash"
+  } > "$CONFIG_DIR/accessd.auth"
+fi
+
+if [ ! -f "$WEBROOT/includes/config.php" ] && [ -f "$WEBROOT/config/config.php" ]; then
+  cp "$WEBROOT/config/config.php" "$WEBROOT/includes/config.php"
+fi
+
+export ACCESSD_WEBROOT="$WEBROOT"
+export ACCESSD_RASPI_CONFIG="${ACCESSD_RASPI_CONFIG:-$CONFIG_DIR}"
+export ACCESSD_RASPI_CONFIG_NETWORK="${ACCESSD_RASPI_CONFIG_NETWORK:-$CONFIG_DIR/networking/defaults.json}"
+export ACCESSD_RASPI_CONFIG_API="${ACCESSD_RASPI_CONFIG_API:-$CONFIG_DIR/api}"
+export ACCESSD_RASPI_ADMIN_DETAILS="${ACCESSD_RASPI_ADMIN_DETAILS:-$CONFIG_DIR/accessd.auth}"
+export ACCESSD_RASPI_DNSMASQ_LEASES="${ACCESSD_RASPI_DNSMASQ_LEASES:-$LEASES_DIR/dnsmasq.leases}"
+export ACCESSD_RASPI_DNSMASQ_PREFIX="${ACCESSD_RASPI_DNSMASQ_PREFIX:-$CONFIG_DIR/dnsmasq.d/090_}"
+export ACCESSD_RASPI_ADBLOCK_LISTPATH="${ACCESSD_RASPI_ADBLOCK_LISTPATH:-$CONFIG_DIR/adblock/}"
+export ACCESSD_RASPI_ADBLOCK_CONFIG="${ACCESSD_RASPI_ADBLOCK_CONFIG:-$CONFIG_DIR/dnsmasq.d/090_adblock.conf}"
+export ACCESSD_RASPI_HOSTAPD_CONFIG="${ACCESSD_RASPI_HOSTAPD_CONFIG:-$CONFIG_DIR/hostapd.conf}"
+export ACCESSD_RASPI_DHCPCD_CONFIG="${ACCESSD_RASPI_DHCPCD_CONFIG:-$CONFIG_DIR/dhcpcd.conf}"
+export ACCESSD_RASPI_DHCPCD_LOG="${ACCESSD_RASPI_DHCPCD_LOG:-$LOGS_DIR/dnsmasq.log}"
+export ACCESSD_RASPI_WPA_SUPPLICANT_CONFIG="${ACCESSD_RASPI_WPA_SUPPLICANT_CONFIG:-$CONFIG_DIR/wpa_supplicant.conf}"
+export ACCESSD_RASPI_OPENVPN_CLIENT_PATH="${ACCESSD_RASPI_OPENVPN_CLIENT_PATH:-$CONFIG_DIR/openvpn/client/}"
+export ACCESSD_RASPI_OPENVPN_CLIENT_CONFIG="${ACCESSD_RASPI_OPENVPN_CLIENT_CONFIG:-$CONFIG_DIR/openvpn/client/client.conf}"
+export ACCESSD_RASPI_OPENVPN_CLIENT_LOGIN="${ACCESSD_RASPI_OPENVPN_CLIENT_LOGIN:-$CONFIG_DIR/openvpn/client/login.conf}"
+export ACCESSD_RASPI_WIREGUARD_PATH="${ACCESSD_RASPI_WIREGUARD_PATH:-$CONFIG_DIR/wireguard/}"
+export ACCESSD_RASPI_WIREGUARD_CONFIG="${ACCESSD_RASPI_WIREGUARD_CONFIG:-$CONFIG_DIR/wireguard/wg0.conf}"
+export ACCESSD_RASPI_IPTABLES_CONF="${ACCESSD_RASPI_IPTABLES_CONF:-$CONFIG_DIR/networking/iptables_rules.json}"
+export ACCESSD_RASPI_LIGHTTPD_CONFIG="${ACCESSD_RASPI_LIGHTTPD_CONFIG:-$CONFIG_DIR/lighttpd.conf}"
+
+echo "AccessD RaspAP web UI preview on http://${ACCESSD_RASPAP_HOST}:${ACCESSD_RASPAP_PORT}"
+echo "Default login (if no accessd.auth configured): admin / secret"
+
+exec php \
+  -d "display_errors=${ACCESSD_RASPAP_DISPLAY_ERRORS}" \
+  -d "error_reporting=${ACCESSD_RASPAP_ERROR_REPORTING}" \
+  -S "${ACCESSD_RASPAP_HOST}:${ACCESSD_RASPAP_PORT}" \
+  -t "$WEBROOT" \
+  "$ROOT_DIR/scripts/web-ui-raspap-router.php"

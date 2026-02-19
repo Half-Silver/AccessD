@@ -10,6 +10,8 @@ Turn your mini PC into a WiFi router with this Ubuntu Core snap package.
 - **NAT Routing**: Share internet connection from WAN to WiFi clients
 - **Easy Configuration**: Simple command-line configuration tool
 - **Status Monitoring**: Check router status and connected clients
+- **Web Management UI**: Browser-based router dashboard on port 8080
+- **Parental Controls**: Per-device internet blocking (always-on or scheduled)
 
 ## Prerequisites
 
@@ -50,6 +52,7 @@ sudo snap install --dangerous accessd_*.snap
 sudo snap connect accessd:firewall-control
 sudo snap connect accessd:network-control
 sudo snap connect accessd:network-setup-control
+sudo snap connect accessd:network-bind
 ```
 
 ### On Regular Ubuntu
@@ -62,6 +65,7 @@ sudo snap install --dangerous accessd_*.snap
 sudo snap connect accessd:firewall-control
 sudo snap connect accessd:network-control
 sudo snap connect accessd:network-setup-control
+sudo snap connect accessd:network-bind
 ```
 
 ## Configuration
@@ -114,6 +118,26 @@ accessd.configure --show
 # To restart after configuration changes:
 sudo snap restart accessd
 ```
+
+### Open Web UI
+
+Once installed, the management interface is available at:
+
+```text
+http://<router-ip>:8080
+```
+
+Default login:
+
+- Username: `admin`
+- Password: current WiFi password from `router.conf` (or `admin12345` fallback)
+
+Use the web console to:
+
+- Update SSID, password, channel, and interface settings
+- View connected DHCP clients
+- Create parental control rules by MAC address
+- Apply always-on or time-based internet blocking
 
 ### Check Status
 
@@ -239,6 +263,71 @@ sudo snap remove accessd
 ```
 
 ## Development
+
+### Local Web UI Preview (npm)
+
+You can run the RaspAP-based management UI directly during development without building a snap:
+
+```bash
+npm run webui
+```
+
+This runs the vendored UI from `external/accessd.webui/`.
+You can also call it explicitly:
+
+```bash
+npm run webui:raspap
+```
+
+Notes:
+- `webui:raspap` requires `php` on your machine.
+- It serves on `http://127.0.0.1:8090` by default.
+- Default login (when no `accessd.auth` exists): `admin` / `secret`.
+
+Or bind only to localhost:
+
+```bash
+npm run webui:local
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8090
+```
+
+For local preview, runtime data is stored in `.dev/snap-common/`.
+
+### Local Web UI Service (npm, no Docker)
+
+Run the UI in the background and manage it like a local service:
+
+```bash
+# Start service
+npm run webui:service:start
+
+# Start service on localhost explicitly
+npm run webui:service:start:local
+
+# Check service status
+npm run webui:service:status
+
+# View recent logs
+npm run webui:service:logs
+
+# Follow logs live
+npm run webui:service:logs:follow
+
+# Restart / stop
+npm run webui:service:restart
+npm run webui:service:stop
+```
+
+Preview URL (localhost mode):
+
+```text
+http://localhost:8090
+```
 
 ### File Structure
 

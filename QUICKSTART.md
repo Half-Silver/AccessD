@@ -21,6 +21,7 @@ sudo snap install --dangerous accessd_*.snap
 sudo snap connect accessd:firewall-control
 sudo snap connect accessd:network-control
 sudo snap connect accessd:network-setup-control
+sudo snap connect accessd:network-bind
 ```
 
 ## 3. Configure
@@ -47,7 +48,18 @@ sudo snap restart accessd
 accessd.status
 ```
 
-## 5. Connect
+## 5. Open Web UI
+
+```bash
+# replace with your router IP
+echo "http://<router-ip>:8080"
+```
+
+Login with:
+- username: `admin`
+- password: your current WiFi password
+
+## 6. Connect
 
 Connect your devices to the WiFi network using the SSID and password you configured!
 
@@ -65,4 +77,26 @@ sudo snap logs accessd -f
 
 # Restart
 sudo snap restart accessd
+```
+
+## Local No-Docker Web UI (Development)
+
+```bash
+# Run foreground
+npm run webui:local
+
+# Run vendored RaspAP-based UI (requires php)
+npm run webui:raspap
+
+# Or run as background service
+npm run webui:service:start:local
+npm run webui:service:status
+npm run webui:service:logs
+npm run webui:service:stop
+```
+
+Preview URL:
+
+```text
+http://localhost:8090
 ```

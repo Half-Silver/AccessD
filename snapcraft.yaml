@@ -58,6 +58,19 @@ apps:
       - network-bind
       - network-control
 
+  web-ui:
+    command-chain:
+      - bin/setup-env
+    command: bin/web-ui-raspap-daemon
+    daemon: simple
+    restart-condition: on-failure
+    restart-delay: 5s
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      - firewall-control
+
   configure:
     command-chain:
       - bin/setup-env
@@ -108,6 +121,10 @@ parts:
       - wireless-tools
       - iw
       - rfkill
+      - php-cli
+      - procps
+      - sysvinit-utils
+      - wget
       - libatm1
     override-build: |
       craftctl default
@@ -137,3 +154,9 @@ parts:
     source: templates/
     organize:
       "*": etc/accessd/
+
+  webui:
+    plugin: dump
+    source: external/accessd.webui/
+    organize:
+      "*": external/accessd.webui/

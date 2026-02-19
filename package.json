@@ -1,0 +1,16 @@
+{
+  "name": "accessd-snap",
+  "private": true,
+  "scripts": {
+    "webui": "./scripts/web-ui-raspap-dev",
+    "webui:local": "ACCESSD_RASPAP_HOST=127.0.0.1 ./scripts/web-ui-raspap-dev",
+    "webui:raspap": "./scripts/web-ui-raspap-dev",
+    "webui:service:start": "./scripts/web-ui-service start",
+    "webui:service:start:local": "ACCESSD_RASPAP_HOST=127.0.0.1 ./scripts/web-ui-service start",
+    "webui:service:stop": "./scripts/web-ui-service stop",
+    "webui:service:status": "./scripts/web-ui-service status",
+    "webui:service:logs": "./scripts/web-ui-service logs",
+    "webui:service:logs:follow": "./scripts/web-ui-service logs --follow",
+    "webui:service:restart": "./scripts/web-ui-service restart"
+  }
+}

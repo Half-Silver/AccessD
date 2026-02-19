@@ -110,6 +110,12 @@ if pgrep -f "(/usr/sbin/dnsmasq|/snap/.*/usr/sbin/dnsmasq).*dnsmasq\.conf" &>/de
 else
     echo "  ✗ dnsmasq is not running"
 fi
+
+if pgrep -f "(accessd\.web-ui|web-ui-raspap-daemon|web-ui-raspap-router\.php)" &>/dev/null; then
+    echo "  ✓ web-ui (Router Dashboard) is running"
+else
+    echo "  ✗ web-ui is not running"
+fi
 echo ""
 
 # Check IP forwarding

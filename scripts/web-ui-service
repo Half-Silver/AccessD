@@ -1,0 +1,153 @@
+#!/bin/bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DEV_DIR="$ROOT_DIR/.dev"
+PID_FILE="$DEV_DIR/webui.pid"
+LOG_FILE="$DEV_DIR/webui.log"
+ENV_FILE="$DEV_DIR/webui.env"
+
+ACCESSD_RASPAP_HOST="${ACCESSD_RASPAP_HOST:-${ACCESSD_WEBUI_HOST:-127.0.0.1}}"
+ACCESSD_RASPAP_PORT="${ACCESSD_RASPAP_PORT:-${ACCESSD_WEBUI_PORT:-8090}}"
+BIND_HOST="$ACCESSD_RASPAP_HOST"
+BIND_PORT="$ACCESSD_RASPAP_PORT"
+
+load_runtime_bind() {
+  BIND_HOST="$ACCESSD_RASPAP_HOST"
+  BIND_PORT="$ACCESSD_RASPAP_PORT"
+
+  if [ -f "$ENV_FILE" ]; then
+    local saved_host saved_port
+    saved_host="$(awk -F= '/^ACCESSD_RASPAP_HOST=/{print $2}' "$ENV_FILE" 2>/dev/null || true)"
+    saved_port="$(awk -F= '/^ACCESSD_RASPAP_PORT=/{print $2}' "$ENV_FILE" 2>/dev/null || true)"
+    [ -n "$saved_host" ] && BIND_HOST="$saved_host"
+    [ -n "$saved_port" ] && BIND_PORT="$saved_port"
+  fi
+}
+
+is_running() {
+  [ -f "$PID_FILE" ] || return 1
+  local pid
+  pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+  [ -n "$pid" ] || return 1
+  kill -0 "$pid" 2>/dev/null
+}
+
+start() {
+  mkdir -p "$DEV_DIR"
+
+  local bind_host bind_port
+  bind_host="${ACCESSD_RASPAP_HOST}"
+  bind_port="${ACCESSD_RASPAP_PORT}"
+
+  if is_running; then
+    echo "webui service already running (pid $(cat "$PID_FILE"))"
+    load_runtime_bind
+    echo "URL: http://${BIND_HOST}:${BIND_PORT}"
+    return 0
+  fi
+
+  # Clean stale pid file if process is gone.
+  rm -f "$PID_FILE"
+  rm -f "$ENV_FILE"
+
+  ACCESSD_RASPAP_HOST="$bind_host" ACCESSD_RASPAP_PORT="$bind_port" \
+    nohup "$ROOT_DIR/scripts/web-ui-raspap-dev" >>"$LOG_FILE" 2>&1 &
+  local pid=$!
+  echo "$pid" > "$PID_FILE"
+  {
+    echo "ACCESSD_RASPAP_HOST=$bind_host"
+    echo "ACCESSD_RASPAP_PORT=$bind_port"
+  } > "$ENV_FILE"
+
+  sleep 1
+  if kill -0 "$pid" 2>/dev/null; then
+    echo "webui service started (pid $pid)"
+    echo "URL: http://${bind_host}:${bind_port}"
+    return 0
+  fi
+
+  echo "webui service failed to start. Recent logs:"
+  tail -n 40 "$LOG_FILE" || true
+  rm -f "$PID_FILE"
+  rm -f "$ENV_FILE"
+  return 1
+}
+
+stop() {
+  if ! [ -f "$PID_FILE" ]; then
+    rm -f "$ENV_FILE"
+    echo "webui service is not running"
+    return 0
+  fi
+
+  local pid
+  pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+  if [ -z "$pid" ]; then
+    rm -f "$PID_FILE"
+    rm -f "$ENV_FILE"
+    echo "webui service is not running"
+    return 0
+  fi
+
+  if kill -0 "$pid" 2>/dev/null; then
+    kill "$pid" 2>/dev/null || true
+    for _ in $(seq 1 20); do
+      if ! kill -0 "$pid" 2>/dev/null; then
+        break
+      fi
+      sleep 0.2
+    done
+  fi
+
+  rm -f "$PID_FILE"
+  rm -f "$ENV_FILE"
+  echo "webui service stopped"
+}
+
+status() {
+  if is_running; then
+    load_runtime_bind
+    echo "webui service running (pid $(cat "$PID_FILE"))"
+    echo "URL: http://${BIND_HOST}:${BIND_PORT}"
+  else
+    rm -f "$PID_FILE"
+    rm -f "$ENV_FILE"
+    echo "webui service stopped"
+    return 1
+  fi
+}
+
+logs() {
+  mkdir -p "$DEV_DIR"
+  touch "$LOG_FILE"
+
+  if [ "${1:-}" = "--follow" ]; then
+    tail -n 80 -f "$LOG_FILE"
+  else
+    tail -n 80 "$LOG_FILE"
+  fi
+}
+
+restart() {
+  stop
+  start
+}
+
+case "${1:-}" in
+  start) start ;;
+  stop) stop ;;
+  status) status ;;
+  logs) logs "${2:-}" ;;
+  restart) restart ;;
+  *)
+    cat <<EOF
+Usage: $0 {start|stop|status|logs [--follow]|restart}
+
+Environment variables:
+  ACCESSD_RASPAP_HOST  Host bind address (default: 127.0.0.1)
+  ACCESSD_RASPAP_PORT  Port (default: 8090)
+EOF
+    exit 1
+    ;;
+esac
