@@ -121,7 +121,7 @@ parts:
       - wireless-tools
       - iw
       - rfkill
-      - php-cli
+      - php8.3-cli
       - procps
       - sysvinit-utils
       - wget

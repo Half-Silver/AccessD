@@ -15,6 +15,37 @@ CONFIG_DIR="$SNAP_COMMON/config"
 LEASES_DIR="$SNAP_COMMON/leases"
 LOGS_DIR="$SNAP_COMMON/logs"
 
+find_php_bin() {
+  local candidate
+
+  for candidate in \
+    "$SNAP/usr/bin/php" \
+    "$SNAP/usr/bin/php8.4" \
+    "$SNAP/usr/bin/php8.3" \
+    "$SNAP/usr/bin/php8.2" \
+    "$SNAP/usr/bin/php8.1"
+  do
+    if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  candidate="$(find "$SNAP/usr/bin" -maxdepth 1 -type f -name 'php*' 2>/dev/null | sort | head -n 1 || true)"
+  if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+    printf '%s\n' "$candidate"
+    return 0
+  fi
+
+  return 1
+}
+
+PHP_BIN="$(find_php_bin || true)"
+if [ -z "$PHP_BIN" ]; then
+  echo "PHP runtime not found in snap at $SNAP/usr/bin" >&2
+  exit 127
+fi
+
 mkdir -p "$CONFIG_DIR" "$LEASES_DIR" "$LOGS_DIR"
 mkdir -p "$CONFIG_DIR/networking" "$CONFIG_DIR/api" "$CONFIG_DIR/dnsmasq.d" "$CONFIG_DIR/adblock"
 
@@ -24,7 +55,7 @@ fi
 
 if [ ! -f "$CONFIG_DIR/accessd.auth" ]; then
   # Default credentials for first boot: admin / secret
-  default_hash="$("$SNAP/usr/bin/php" -r 'echo password_hash("secret", PASSWORD_BCRYPT);')"
+  default_hash="$("$PHP_BIN" -r 'echo password_hash("secret", PASSWORD_BCRYPT);')"
   {
     echo "admin"
     echo "$default_hash"
@@ -51,8 +82,9 @@ export ACCESSD_RASPI_WIREGUARD_PATH="${ACCESSD_RASPI_WIREGUARD_PATH:-$CONFIG_DIR
 export ACCESSD_RASPI_WIREGUARD_CONFIG="${ACCESSD_RASPI_WIREGUARD_CONFIG:-$CONFIG_DIR/wireguard/wg0.conf}"
 export ACCESSD_RASPI_IPTABLES_CONF="${ACCESSD_RASPI_IPTABLES_CONF:-$CONFIG_DIR/networking/iptables_rules.json}"
 export ACCESSD_RASPI_LIGHTTPD_CONFIG="${ACCESSD_RASPI_LIGHTTPD_CONFIG:-$CONFIG_DIR/lighttpd.conf}"
+export ACCESSD_RASPI_PHP_BIN="$PHP_BIN"
 
-exec "$SNAP/usr/bin/php" \
+exec "$PHP_BIN" \
   -d "display_errors=${ACCESSD_RASPAP_DISPLAY_ERRORS}" \
   -d "error_reporting=${ACCESSD_RASPAP_ERROR_REPORTING}" \
   -S "${ACCESSD_WEBUI_HOST}:${ACCESSD_WEBUI_PORT}" \
