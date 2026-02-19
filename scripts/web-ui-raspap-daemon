@@ -104,7 +104,11 @@ fi
 # Some upstream pages include includes/config.php directly.
 # Keep runtime resilient even if only config/config.php is tracked in source.
 if [ ! -f "$WEBROOT/includes/config.php" ] && [ -f "$WEBROOT/config/config.php" ]; then
-  cp "$WEBROOT/config/config.php" "$WEBROOT/includes/config.php"
+  if [ -w "$WEBROOT/includes" ]; then
+    cp "$WEBROOT/config/config.php" "$WEBROOT/includes/config.php"
+  else
+    echo "Warning: includes/config.php missing and '$WEBROOT/includes' is not writable." >&2
+  fi
 fi
 
 if [ ! -f "$CONFIG_DIR/accessd.auth" ]; then
