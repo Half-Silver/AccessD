@@ -1,3 +1,10 @@
 ref
 .dev
 scripts/__pycache__
+
+# Snapcraft build artifacts
+.craft/
+parts/
+stage/
+prime/
+accessd_*.snap
