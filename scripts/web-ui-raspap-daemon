@@ -96,6 +96,7 @@ fi
 
 mkdir -p "$CONFIG_DIR" "$LEASES_DIR" "$LOGS_DIR"
 mkdir -p "$CONFIG_DIR/networking" "$CONFIG_DIR/api" "$CONFIG_DIR/dnsmasq.d" "$CONFIG_DIR/adblock"
+mkdir -p "$SNAP_COMMON/sessions"
 
 if [ ! -f "$CONFIG_DIR/networking/defaults.json" ] && [ -f "$WEBROOT/config/defaults.json" ]; then
   cp "$WEBROOT/config/defaults.json" "$CONFIG_DIR/networking/defaults.json"
@@ -146,6 +147,7 @@ export ACCESSD_RASPI_PHP_BIN="$PHP_BIN"
 exec "$PHP_BIN" \
   -d "display_errors=${ACCESSD_RASPAP_DISPLAY_ERRORS}" \
   -d "error_reporting=${ACCESSD_RASPAP_ERROR_REPORTING}" \
+  -d "session.save_path=$SNAP_COMMON/sessions" \
   -S "${ACCESSD_WEBUI_HOST}:${ACCESSD_WEBUI_PORT}" \
   -t "$WEBROOT" \
   "$ROUTER_SCRIPT"

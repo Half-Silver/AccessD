@@ -30,6 +30,7 @@ fi
 
 mkdir -p "$CONFIG_DIR" "$LEASES_DIR" "$LOGS_DIR"
 mkdir -p "$CONFIG_DIR/networking" "$CONFIG_DIR/api" "$CONFIG_DIR/dnsmasq.d" "$CONFIG_DIR/adblock"
+mkdir -p "$SNAP_COMMON/sessions"
 
 if [ ! -f "$CONFIG_DIR/networking/defaults.json" ] && [ -f "$WEBROOT/config/defaults.json" ]; then
   cp "$WEBROOT/config/defaults.json" "$CONFIG_DIR/networking/defaults.json"
@@ -75,6 +76,7 @@ echo "Default login (if no accessd.auth configured): admin / secret"
 exec php \
   -d "display_errors=${ACCESSD_RASPAP_DISPLAY_ERRORS}" \
   -d "error_reporting=${ACCESSD_RASPAP_ERROR_REPORTING}" \
+  -d "session.save_path=$SNAP_COMMON/sessions" \
   -S "${ACCESSD_RASPAP_HOST}:${ACCESSD_RASPAP_PORT}" \
   -t "$WEBROOT" \
   "$ROOT_DIR/scripts/web-ui-raspap-router.php"
