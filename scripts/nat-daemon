@@ -259,6 +259,20 @@ iptables -C FORWARD -j ACCESSD_FORWARD 2>/dev/null || iptables -A FORWARD -j ACC
 iptables -C ACCESSD_FORWARD -i "$LAN_INTERFACE" -o "$WAN_INTERFACE" -j ACCEPT 2>/dev/null || iptables -A ACCESSD_FORWARD -i "$LAN_INTERFACE" -o "$WAN_INTERFACE" -j ACCEPT
 iptables -C ACCESSD_FORWARD -i "$WAN_INTERFACE" -o "$LAN_INTERFACE" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -A ACCESSD_FORWARD -i "$WAN_INTERFACE" -o "$LAN_INTERFACE" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
+# Access Control Logic
+ACCESS_CONF="$CONFIG_DIR/access_control.conf"
+if [ -f "$ACCESS_CONF" ]; then
+  echo "Applying access control rules..."
+  while IFS='|' read -r mac ip start end filter; do
+    [ -z "$mac" ] && continue
+    echo "  Restricting $mac ($ip) to $start-$end"
+    # Allow during specified time
+    iptables -A ACCESSD_FORWARD -i "$LAN_INTERFACE" -m mac --mac-source "$mac" -m time --timestart "$start" --timestop "$end" -j ACCEPT
+    # Block otherwise
+    iptables -A ACCESSD_FORWARD -i "$LAN_INTERFACE" -m mac --mac-source "$mac" -j REJECT
+  done < "$ACCESS_CONF"
+fi
+
 while true; do
   sleep 3600
 done

@@ -88,6 +88,14 @@ apps:
       - network-control
       - firewall-control
 
+  access-control:
+    command-chain:
+      - bin/setup-env
+    command: bin/access-control
+    plugs:
+      - network
+      - network-control
+
 hooks:
   install:
     plugs:

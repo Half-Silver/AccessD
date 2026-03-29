@@ -1,0 +1,83 @@
+#!/bin/bash
+set -euo pipefail
+
+SNAP_COMMON=${SNAP_COMMON:-/var/snap/accessd/common}
+CONFIG_DIR="$SNAP_COMMON/config"
+ACCESS_CONF="$CONFIG_DIR/access_control.conf"
+
+mkdir -p "$CONFIG_DIR"
+touch "$ACCESS_CONF"
+
+show_usage() {
+    cat <<EOF
+Access Control and Scheduling Tool
+
+Usage: accessd.access-control [COMMAND] [OPTIONS]
+
+Commands:
+  add <mac> <ip> <start> <end> <filter>   Add an access control rule
+  remove <mac>                            Remove an access control rule
+  list                                    List current rules
+  help                                    Show this help message
+
+Options:
+  mac:      Device MAC address (e.g., 7a:07:7c:4a:68:ae)
+  ip:       Fixed IP address (e.g., 192.168.50.180)
+  start:    Start time (24h format, e.g., 19:00)
+  end:      End time (24h format, e.g., 21:00)
+  filter:   Filter type (standard, kids)
+
+Example:
+  accessd.access-control add 7a:07:7c:4a:68:ae 192.168.50.180 19:00 21:00 kids
+
+After changing configuration, restart services:
+  sudo snap restart accessd.daemon accessd.dnsmasq
+EOF
+}
+
+case "${1:-help}" in
+    add)
+        if [ $# -lt 6 ]; then
+            show_usage
+            exit 1
+        fi
+        MAC=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+        IP="$3"
+        START="$4"
+        END="$5"
+        FILTER="$6"
+        
+        # Remove existing rule for same MAC
+        grep -v "^$MAC|" "$ACCESS_CONF" > "${ACCESS_CONF}.tmp" || true
+        mv "${ACCESS_CONF}.tmp" "$ACCESS_CONF"
+        
+        # Add new rule
+        echo "$MAC|$IP|$START|$END|$FILTER" >> "$ACCESS_CONF"
+        echo "Rule added for $MAC ($IP) from $START to $END with $FILTER filter."
+        echo "Please run: sudo snap restart accessd.daemon accessd.dnsmasq"
+        ;;
+    remove)
+        if [ $# -lt 2 ]; then
+            show_usage
+            exit 1
+        fi
+        MAC=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+        grep -v "^$MAC|" "$ACCESS_CONF" > "${ACCESS_CONF}.tmp" || true
+        mv "${ACCESS_CONF}.tmp" "$ACCESS_CONF"
+        echo "Rule removed for $MAC."
+        echo "Please run: sudo snap restart accessd.daemon accessd.dnsmasq"
+        ;;
+    list)
+        echo "MAC Address       | IP Address     | Start | End   | Filter"
+        echo "------------------|----------------|-------|-------|---------"
+        cat "$ACCESS_CONF" | tr '|' ' ' | awk '{printf "%-17s | %-14s | %-5s | %-5s | %-s\n", $1, $2, $3, $4, $5}'
+        ;;
+    help|--help)
+        show_usage
+        ;;
+    *)
+        echo "Unknown command: $1"
+        show_usage
+        exit 1
+        ;;
+esac

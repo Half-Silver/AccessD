@@ -222,6 +222,25 @@ if [ -f "$DNSMASQ_TEMPLATE" ]; then
       "$DNSMASQ_TEMPLATE" > "$DNSMASQ_CONF"
 fi
 
+# Append custom access control rules to dnsmasq.conf
+ACCESS_CONF="$CONFIG_DIR/access_control.conf"
+if [ -f "$ACCESS_CONF" ]; then
+    echo "" >> "$DNSMASQ_CONF"
+    echo "# Custom Access Control Rules" >> "$DNSMASQ_CONF"
+    while IFS='|' read -r mac ip start end filter; do
+        [ -z "$mac" ] && continue
+        if [ "$filter" = "kids" ]; then
+            echo "dhcp-host=$mac,set:kids,$ip" >> "$DNSMASQ_CONF"
+        else
+            echo "dhcp-host=$mac,$ip" >> "$DNSMASQ_CONF"
+        fi
+    done < "$ACCESS_CONF"
+    
+    # DNS Filter Options
+    echo "# Kids Filter (Cloudflare for Families)" >> "$DNSMASQ_CONF"
+    echo "dhcp-option=tag:kids,option:dns-server,1.1.1.3,1.0.0.3" >> "$DNSMASQ_CONF"
+fi
+
 echo "Configuration updated successfully!"
 echo ""
 show_config
