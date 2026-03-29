@@ -1,8 +1,10 @@
 <?php
-header("Content-Type: image/svg+xml");
-
+require_once '../../includes/config.php';
+require_once '../../includes/compat.php';
 require_once '../../includes/functions.php';
 $color = getColorOpt();
+
+header("Content-Type: image/svg+xml");
 
 $showJoint = isset($_GET['joint']);
 $showDevice1 = isset($_GET['device-1']);

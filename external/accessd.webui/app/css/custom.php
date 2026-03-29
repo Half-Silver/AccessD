@@ -1,8 +1,11 @@
-<?php header("Content-Type: text/css; charset=utf-8"); ?>
 <?php
+require_once '../../includes/config.php';
+require_once '../../includes/compat.php';
 require_once '../../includes/functions.php';
 $color = getColorOpt();
 $allCss = 'all.css';
+
+header("Content-Type: text/css; charset=utf-8");
 ?>
 /*
 Theme Name: AccessD default

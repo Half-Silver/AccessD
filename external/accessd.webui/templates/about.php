@@ -1,6 +1,6 @@
 <?php
 
-require_once 'app/lib/Parsedown.php';
+require_once dirname(__DIR__) . '/app/lib/Parsedown.php';
 
 ?>
 <div class="row">

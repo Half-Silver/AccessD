@@ -40,7 +40,7 @@ define('RASPI_BRAND_TEXT', 'AccessD');
 define('RASPI_BRAND_TITLE', RASPI_BRAND_TEXT.' Admin Panel');
 define('RASPI_CONFIG', accessd_env('ACCESSD_RASPI_CONFIG', '/etc/accessd'));
 define('RASPI_CONFIG_NETWORK', accessd_env('ACCESSD_RASPI_CONFIG_NETWORK', RASPI_CONFIG.'/networking/defaults.json'));
-define('RASPI_CONFIG_PROVIDERS', accessd_env('ACCESSD_RASPI_CONFIG_PROVIDERS', 'config/vpn-providers.json'));
+define('RASPI_CONFIG_PROVIDERS', accessd_env('ACCESSD_RASPI_CONFIG_PROVIDERS', accessd_env('ACCESSD_WEBROOT', dirname(__DIR__)) . '/config/vpn-providers.json'));
 define('RASPI_CONFIG_API', accessd_env('ACCESSD_RASPI_CONFIG_API', RASPI_CONFIG.'/api'));
 define('RASPI_ADMIN_DETAILS', accessd_env('ACCESSD_RASPI_ADMIN_DETAILS', RASPI_CONFIG.'/accessd.auth'));
 define('RASPI_WIFI_AP_INTERFACE', accessd_env('ACCESSD_RASPI_WIFI_AP_INTERFACE', 'wlan0'));

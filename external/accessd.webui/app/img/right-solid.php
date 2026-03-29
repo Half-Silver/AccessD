@@ -1,8 +1,11 @@
 <?php
-header("Content-Type: image/svg+xml");
-
+require_once '../../includes/config.php';
+require_once '../../includes/compat.php';
 require_once '../../includes/functions.php';
 $color = getColorOpt();
+
+header("Content-Type: image/svg+xml");
+
 $showDevice1 = isset($_GET['device-1']);
 $showOut = isset($_GET['out']);
 $showDevice2 = isset($_GET['device-2']);

@@ -1,10 +1,16 @@
-<?php header("Content-Type: image/svg+xml; charset=utf-8"); ?>
-<?php
+<?php 
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+
 require_once '../../includes/config.php';
+require_once '../../includes/compat.php';
 require_once '../../includes/functions.php';
+
 $color = getColorOpt();
 $static = (isset($_GET['static']) && $_GET['static'] == '1') ||
     (defined('RASPI_UI_STATIC_LOGO') && RASPI_UI_STATIC_LOGO === true);
+
+header("Content-Type: image/svg+xml; charset=utf-8");
 ?>
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
