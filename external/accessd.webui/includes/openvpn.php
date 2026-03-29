@@ -25,15 +25,15 @@ function DisplayOpenVPNConfig()
             }
         } elseif (isset($_POST['StartOpenVPN'])) {
             $status->addMessage('Attempting to start OpenVPN', 'info');
-            exec('sudo /bin/systemctl start openvpn-client@client', $return);
-            exec('sudo /bin/systemctl enable openvpn-client@client', $return);
+            exec('sudo systemctl start openvpn-client@client', $return);
+            exec('sudo systemctl enable openvpn-client@client', $return);
             foreach ($return as $line) {
                 $status->addMessage($line, 'info');
             }
         } elseif (isset($_POST['StopOpenVPN'])) {
             $status->addMessage('Attempting to stop OpenVPN', 'info');
-            exec('sudo /bin/systemctl stop openvpn-client@client', $return);
-            exec('sudo /bin/systemctl disable openvpn-client@client', $return);
+            exec('sudo systemctl stop openvpn-client@client', $return);
+            exec('sudo systemctl disable openvpn-client@client', $return);
             foreach ($return as $line) {
                 $status->addMessage($line, 'info');
             }

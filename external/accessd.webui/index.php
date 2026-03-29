@@ -25,6 +25,7 @@
 
 require_once 'includes/bootstrap.php';
 require_once 'includes/config.php';
+require_once 'includes/compat.php';
 require_once 'includes/autoload.php';
 $handler = new RaspAP\Exceptions\ExceptionHandler;
 

@@ -8,6 +8,14 @@ function msgShow(retcode,msg) {
     return htmlMsg;
 }
 
+function showModalById(modalId) {
+    const modalElement = document.getElementById(modalId);
+    if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+        return;
+    }
+    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+}
+
 function createNetmaskAddr(bitCount) {
   var mask=[];
   for(i=0;i<4;i++) {
@@ -85,7 +93,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const netmaskInput = document.getElementById('bridgeNetmask');
   const gatewayInput = document.getElementById('bridgeGateway');
   const dnsInput = document.getElementById('bridgeDNS');
-  const previewIp = document.getElementById('previewStaticIp');
+
+  if (!bridgeCheckbox || !bridgeSection || !staticIpInput || !netmaskInput || !gatewayInput || !dnsInput) {
+    return;
+  }
   
   const bridgeInputs = [staticIpInput, netmaskInput, gatewayInput, dnsInput];
   
@@ -367,7 +378,7 @@ window.addEventListener('load', function() {
 }, false);
 
 function showSessionExpiredModal() {
-    $('#sessionTimeoutModal').modal('show');
+    showModalById('sessionTimeoutModal');
 }
 
 $(document).on("click", "#js-session-expired-login", function(e) {
@@ -380,7 +391,7 @@ $(document).on("click", "#js-session-expired-login", function(e) {
 $(document).ready(function () {
     const params = new URLSearchParams(window.location.search);
     const redirectUrl = $('#redirect-url').val() || params.get('action') || '/';
-    $('#modal-admin-login').modal('show');
+    showModalById('modal-admin-login');
     $('#redirect-url').val(redirectUrl);
     $('#username').focus();
     $('#username').addClass("focusedInput");
@@ -462,6 +473,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const rangeStart = document.getElementById('txtrangestart');
     const rangeEnd = document.getElementById('txtrangeend');
     const leaseTime = document.getElementById('txtrangeleasetime');
+
+    if (!dhcpCheckbox || !rangeStart || !rangeEnd || !leaseTime) {
+        return;
+    }
 
     function updateRequiredFields() {
         const isChecked = dhcpCheckbox.checked === true;
@@ -653,4 +668,3 @@ if (!isNaN(alertTimeout) && alertTimeout > 0) {
     });
   }, alertTimeout);
 }
-

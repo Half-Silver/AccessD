@@ -176,6 +176,7 @@ function safefilerewrite($fileName, $dataToSave)
             flock($fp, LOCK_UN);
         }
         fclose($fp);
+        accessd_sync_router_conf($fileName);
         return true;
     } else {
         return false;

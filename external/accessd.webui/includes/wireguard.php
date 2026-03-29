@@ -29,15 +29,15 @@ function DisplayWireGuardConfig()
             SaveWireGuardConfig($status);
         } elseif (isset($_POST['startwg'])) {
             $status->addMessage('Attempting to start WireGuard', 'info');
-            exec('sudo /bin/systemctl enable wg-quick@wg0', $return);
-            exec('sudo /bin/systemctl start wg-quick@wg0', $return);
+            exec('sudo systemctl enable wg-quick@wg0', $return);
+            exec('sudo systemctl start wg-quick@wg0', $return);
             foreach ($return as $line) {
                 $status->addMessage($line, 'info');
             }
         } elseif (isset($_POST['stopwg'])) {
             $status->addMessage('Attempting to stop WireGuard', 'info');
-            exec('sudo /bin/systemctl stop wg-quick@wg0', $return);
-            exec('sudo /bin/systemctl disable wg-quick@wg0', $return);
+            exec('sudo systemctl stop wg-quick@wg0', $return);
+            exec('sudo systemctl disable wg-quick@wg0', $return);
             foreach ($return as $line) {
                 $status->addMessage($line, 'info');
             }

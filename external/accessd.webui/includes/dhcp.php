@@ -29,7 +29,7 @@ function DisplayDHCPConfig()
             if ($dnsmasq_state) {
                 $status->addMessage('dnsmasq already running', 'info');
             } else {
-                exec('sudo /bin/systemctl start dnsmasq.service', $dnsmasq, $return);
+                exec('sudo systemctl start dnsmasq.service', $dnsmasq, $return);
                 if ($return == 0) {
                     $status->addMessage('Successfully started dnsmasq', 'success');
                     $dnsmasq_state = true;
@@ -39,7 +39,7 @@ function DisplayDHCPConfig()
             }
         } elseif (isset($_POST['restartdhcpd'])) {
             if ($dnsmasq_state) {
-                exec('sudo /bin/systemctl restart dnsmasq.service', $dnsmasq, $return);
+                exec('sudo systemctl restart dnsmasq.service', $dnsmasq, $return);
                 if ($return == 0) {
                     $status->addMessage('Successfully restarted dnsmasq', 'success');
                     $dnsmasq_state = false;
@@ -51,7 +51,7 @@ function DisplayDHCPConfig()
             }
         } elseif (isset($_POST['stopdhcpd'])) {
             if ($dnsmasq_state) {
-                exec('sudo /bin/systemctl stop dnsmasq.service', $dnsmasq, $return);
+                exec('sudo systemctl stop dnsmasq.service', $dnsmasq, $return);
                 if ($return == 0) {
                     $status->addMessage('Successfully stopped dnsmasq', 'success');
                     $dnsmasq_state = false;
@@ -79,7 +79,7 @@ function DisplayDHCPConfig()
     count($log_dhcp) > 0 ? $conf['log-dhcp'] = true : false ;
     count($log_queries) > 0 ? $conf['log-queries'] = true : false ;
 
-    exec('sudo /bin/chmod o+r '.RASPI_DHCPCD_LOG);
+    exec('sudo chmod o+r '.RASPI_DHCPCD_LOG);
     $logdata = getLogLimited(RASPI_DHCPCD_LOG);
 
     echo renderTemplate(

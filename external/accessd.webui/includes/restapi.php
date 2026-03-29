@@ -27,20 +27,20 @@ function DisplayRestAPI()
                 } else {
                     $return = saveAPISettings($status, $apiKey, $dotenv);
                     $status->addMessage('Restarting restapi.service', 'info');
-                    exec('sudo /bin/systemctl stop restapi.service', $return);
+                    exec('sudo systemctl stop restapi.service', $return);
                     sleep(1);
-                    exec('sudo /bin/systemctl start restapi.service', $return);
+                    exec('sudo systemctl start restapi.service', $return);
                 }
             }
         } elseif (isset($_POST['StartRestAPIservice'])) {
             $status->addMessage('Attempting to start restapi.service', 'info');
-            exec('sudo /bin/systemctl start restapi.service', $return);
+            exec('sudo systemctl start restapi.service', $return);
             foreach ($return as $line) {
                 $status->addMessage($line, 'info');
             }
         } elseif (isset($_POST['StopRestAPIservice'])) {
             $status->addMessage('Attempting to stop restapi.service', 'info');
-            exec('sudo /bin/systemctl stop restapi.service', $return);
+            exec('sudo systemctl stop restapi.service', $return);
             foreach ($return as $line) {
                 $status->addMessage($line, 'info');
             }

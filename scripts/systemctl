@@ -1,0 +1,39 @@
+#!/bin/sh
+# AccessD systemctl wrapper for snap confinement
+
+# Map systemd service names to snap app names
+# hostapd.service -> accessd.hostapd
+# dnsmasq.service -> accessd.dnsmasq
+# restapi.service -> accessd.restapi
+
+case "$1" in
+    start|stop|restart|reload|status|is-active)
+        CMD="$1"
+        shift
+        SERVICE="$1"
+        case "$SERVICE" in
+            hostapd*) SERVICE="accessd.hostapd" ;;
+            dnsmasq*) SERVICE="accessd.dnsmasq" ;;
+            restapi*) SERVICE="accessd.restapi" ;;
+            "accessd-network-activity@*") 
+                # just ignore these for now as they are handled by the snap daemon
+                exit 0
+                ;;
+            *)
+                # If it doesn't match, try prefixing with accessd. if it doesn't have it
+                case "$SERVICE" in
+                    accessd.*) ;;
+                    *) SERVICE="accessd.$SERVICE" ;;
+                esac
+                ;;
+        esac
+        # snapctl restart is only for hooks in older snapd, 
+        # but in newer snapd (core22+) it might work from apps too.
+        # If not, it will just fail silently or log error.
+        exec snapctl "$CMD" "$SERVICE"
+        ;;
+    *)
+        # Passthru for other commands (enable, disable, etc.)
+        exec snapctl "$@"
+        ;;
+esac

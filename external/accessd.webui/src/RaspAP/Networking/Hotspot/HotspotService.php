@@ -289,11 +289,11 @@ class HotspotService
         }
 
         if ($dbm === 'auto') {
-            exec('sudo /sbin/iw dev ' . escapeshellarg($iface) . ' set txpower auto', $return);
+            exec('sudo iw dev ' . escapeshellarg($iface) . ' set txpower auto', $return);
             $status->addMessage('Setting transmit power to auto.', 'success');
         } else {
             $sdBm = (int)$dbm * 100;
-            exec('sudo /sbin/iw dev ' . escapeshellarg($iface) . ' set txpower fixed ' . $sdBm, $return);
+            exec('sudo iw dev ' . escapeshellarg($iface) . ' set txpower fixed ' . $sdBm, $return);
             $status->addMessage('Setting transmit power to ' . $dbm . ' dBm.', 'success');
         }
         return true;

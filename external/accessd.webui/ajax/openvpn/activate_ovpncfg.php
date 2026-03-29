@@ -18,11 +18,11 @@ if (isset($_POST['cfg_id'])) {
     system("sudo ln -s $ovpncfg_login ".RASPI_OPENVPN_CLIENT_LOGIN, $return);
 
     // restart service
-    exec("sudo /bin/systemctl stop openvpn-client@client", $return);
+    exec("sudo systemctl stop openvpn-client@client", $return);
     sleep(1);
-    exec("sudo /bin/systemctl enable openvpn-client@client", $return);
+    exec("sudo systemctl enable openvpn-client@client", $return);
     sleep(1);
-    exec("sudo /bin/systemctl start openvpn-client@client", $return);
+    exec("sudo systemctl start openvpn-client@client", $return);
 
     echo json_encode($return);
 }

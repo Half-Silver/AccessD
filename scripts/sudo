@@ -1,0 +1,13 @@
+#!/bin/sh
+# AccessD sudo wrapper for snap confinement
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -*) shift ;; 
+        sudo) shift ;;
+        *) break ;;
+    esac
+done
+if [ -z "$1" ]; then
+    exit 0
+fi
+exec "$@"

@@ -54,7 +54,7 @@ function DisplayAdBlockConfig()
                 $status->addMessage($errors, 'danger');
             }
         } elseif (isset($_POST['restartadblock']) || isset($_POST['startadblock'])) {
-            exec('sudo /bin/systemctl restart dnsmasq.service', $dnsmasq, $return);
+            exec('sudo systemctl restart dnsmasq.service', $dnsmasq, $return);
             if ($return == 0) {
                 $status->addMessage('Adblock restart successful', 'success');
             } else {
