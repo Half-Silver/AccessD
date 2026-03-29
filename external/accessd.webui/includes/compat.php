@@ -48,8 +48,8 @@ if (!function_exists('accessd_sync_router_conf')) {
         }
 
         // Update from hostapd.conf if changed
-        $hostapd_conf = RASPI_HOSTAPD_CONFIG;
-        if (file_exists($hostapd_conf)) {
+        $hostapd_conf = defined('RASPI_HOSTAPD_CONFIG') ? RASPI_HOSTAPD_CONFIG : null;
+        if ($hostapd_conf && file_exists($hostapd_conf)) {
             $h_lines = file($hostapd_conf, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($h_lines as $line) {
                 if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
@@ -74,26 +74,29 @@ if (!function_exists('accessd_sync_router_conf')) {
         }
 
         // Update from dnsmasq.conf
-        $dnsmasq_conf = RASPI_DNSMASQ_PREFIX . (getenv('ACCESSD_AP_INTERFACE') ?: 'wlan0') . '.conf';
-        // Check if the specific interface config exists, otherwise check the prefix as a file (some versions use it)
-        if (!file_exists($dnsmasq_conf) && file_exists(RASPI_DNSMASQ_PREFIX)) {
-             $dnsmasq_conf = RASPI_DNSMASQ_PREFIX;
-        }
-        
-        if (file_exists($dnsmasq_conf)) {
-            $d_lines = file($dnsmasq_conf, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            foreach ($d_lines as $line) {
-                if (strpos($line, 'dhcp-range=') === 0) {
-                    $range = substr($line, 11);
-                    $parts = explode(',', $range);
-                    if (count($parts) >= 2) {
-                        $config['DHCP_START'] = $parts[0];
-                        $config['DHCP_END'] = $parts[1];
-                        if (isset($parts[2]) && strpos($parts[2], '.') !== false) {
-                            $config['LAN_NETMASK'] = $parts[2];
-                        }
-                        if (isset($parts[3])) {
-                            $config['DHCP_LEASE'] = $parts[3];
+        $dnsmasq_prefix = defined('RASPI_DNSMASQ_PREFIX') ? RASPI_DNSMASQ_PREFIX : null;
+        if ($dnsmasq_prefix) {
+            $dnsmasq_conf = $dnsmasq_prefix . (getenv('ACCESSD_AP_INTERFACE') ?: 'wlan0') . '.conf';
+            // Check if the specific interface config exists, otherwise check the prefix as a file (some versions use it)
+            if (!file_exists($dnsmasq_conf) && file_exists($dnsmasq_prefix)) {
+                 $dnsmasq_conf = $dnsmasq_prefix;
+            }
+            
+            if (file_exists($dnsmasq_conf)) {
+                $d_lines = file($dnsmasq_conf, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                foreach ($d_lines as $line) {
+                    if (strpos($line, 'dhcp-range=') === 0) {
+                        $range = substr($line, 11);
+                        $parts = explode(',', $range);
+                        if (count($parts) >= 2) {
+                            $config['DHCP_START'] = $parts[0];
+                            $config['DHCP_END'] = $parts[1];
+                            if (isset($parts[2]) && strpos($parts[2], '.') !== false) {
+                                $config['LAN_NETMASK'] = $parts[2];
+                            }
+                            if (isset($parts[3])) {
+                                $config['DHCP_LEASE'] = $parts[3];
+                            }
                         }
                     }
                 }

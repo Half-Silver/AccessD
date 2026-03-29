@@ -23,8 +23,16 @@ class CSRFTokenizer {
         // ensure a CSRF token exists in the session
         if (empty($_SESSION['csrf_token'])) {
             $this->ensureCSRFSessionToken();
-            header("Location: " .$_SERVER['REQUEST_URI']);
-            exit;
+            if (session_status() === PHP_SESSION_ACTIVE && !headers_sent()) {
+                 // only redirect if we just started
+                 // and avoid loops
+                 if (!isset($_GET['csrf_retry'])) {
+                     $url = $_SERVER['REQUEST_URI'];
+                     $separator = (strpos($url, '?') !== false) ? '&' : '?';
+                     header("Location: " . $url . $separator . "csrf_retry=1");
+                     exit;
+                 }
+            }
         }
 
         if ($this->csrfValidateRequest()) {

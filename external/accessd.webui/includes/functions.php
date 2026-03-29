@@ -91,11 +91,14 @@ function getDefaultNetValue($svc,$iface,$key)
  */
 function getDefaultNetOpts($svc,$key)
 {
+    if (!file_exists(RASPI_CONFIG_NETWORK)) {
+        return false;
+    }
     $json = json_decode(file_get_contents(RASPI_CONFIG_NETWORK), true);
     if ($json === null) {
         return false;
     } else {
-        return $json[$svc][$key];
+        return $json[$svc][$key] ?? false;
     }
 }
 
@@ -108,14 +111,17 @@ function getDefaultNetOpts($svc,$key)
  */
 function getProviderValue($id, $key)
 {
+    if (!file_exists(RASPI_CONFIG_PROVIDERS)) {
+        return false;
+    }
     $obj = json_decode(file_get_contents(RASPI_CONFIG_PROVIDERS), true);
-    if (!isset($obj['providers']) || !is_array($obj['providers'])) {
+    if ($obj === null || !isset($obj['providers']) || !is_array($obj['providers'])) {
         return false;
     }
     if ($id === null || !is_numeric($id)) {
         return false;
     }
-    $id--;
+    $id = (int)$id - 1;
     if (!isset($obj['providers'][$id]) || !is_array($obj['providers'][$id])) {
         return false;
     }
@@ -176,7 +182,9 @@ function safefilerewrite($fileName, $dataToSave)
             flock($fp, LOCK_UN);
         }
         fclose($fp);
-        accessd_sync_router_conf($fileName);
+        if (function_exists('accessd_sync_router_conf')) {
+            accessd_sync_router_conf($fileName);
+        }
         return true;
     } else {
         return false;
@@ -583,7 +591,7 @@ function getThemeOpt()
 {
     if (!isset($_COOKIE['theme'])) {
         $theme = "custom.php";
-        setcookie('theme', $theme);
+        @setcookie('theme', $theme);
     } else {
         $theme = $_COOKIE['theme'];
     }
@@ -617,25 +625,34 @@ function getColorOpt()
 
 function getBridgedState()
 {
-
-	$hostapdIni = RASPI_CONFIG . '/hostapd.ini';
-	if (!file_exists($hostapdIni)) {
-		return 0;
-	} else {
-		$arrHostapdConf = parse_ini_file($hostapdIni);
-	}
-    return  $arrHostapdConf['BridgedEnable'];
- }
+    $hostapdIni = RASPI_CONFIG . '/hostapd.ini';
+    if (!file_exists($hostapdIni)) {
+        return 0;
+    }
+    
+    // Use @ to suppress warnings and check result
+    $arrHostapdConf = @parse_ini_file($hostapdIni);
+    if ($arrHostapdConf === false) {
+        return 0;
+    }
+    
+    return isset($arrHostapdConf['BridgedEnable']) ? (int)$arrHostapdConf['BridgedEnable'] : 0;
+}
 
 // Returns VPN provider ID, if defined
 function getProviderID()
 {
     if (RASPI_VPN_PROVIDER_ENABLED) {
-        $arrProvider = parse_ini_file(RASPI_CONFIG.'/provider.ini');
-        if (isset($arrProvider['providerID'])) {
+        $providerIni = RASPI_CONFIG.'/provider.ini';
+        if (!file_exists($providerIni)) {
+            return null;
+        }
+        $arrProvider = @parse_ini_file($providerIni);
+        if ($arrProvider !== false && isset($arrProvider['providerID'])) {
             return $arrProvider['providerID'];
         }
     }
+    return null;
 }
 
 /**

@@ -29,6 +29,9 @@ if ($pathInfo === '/index.php') {
     $pathInfo = '/';
 }
 
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+
 $_SERVER['PATH_INFO'] = ($pathInfo === '/') ? '' : $pathInfo;
 $_SERVER['SCRIPT_NAME'] = '/index.php';
 $_SERVER['PHP_SELF'] = '/index.php' . $_SERVER['PATH_INFO'];

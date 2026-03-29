@@ -248,7 +248,7 @@ class LocaleManager
      */
     private function setLocaleCookie(string $locale): void
     {
-        setcookie('locale', $locale, time() + self::COOKIE_LIFETIME, '/', '', false, true);
+        @setcookie('locale', $locale, time() + self::COOKIE_LIFETIME, '/', '', false, true);
     }
 
     /**

@@ -45,7 +45,7 @@ if ($cputemp > 70) {
 
 // hostapd status
 $hostapd = $system->hostapdStatus();
-if ($hostapd[0] ==1) {
+if (isset($hostapd[0]) && $hostapd[0] == 1) {
     $hostapd_status = "up";
     $hostapd_led = "service-status-up";
 } else {

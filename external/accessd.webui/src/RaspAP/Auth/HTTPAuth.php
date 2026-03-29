@@ -85,7 +85,7 @@ class HTTPAuth
         session_destroy(); // destroy the session
         session_start();
         $_SESSION['locale'] = $locale;
-        setcookie('locale', $locale, time() + (86400 * 30), '/', '', false, true);
+        @setcookie('locale', $locale, time() + (86400 * 30), '/', '', false, true);
         $basePath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
         $redirectUrl = $_SERVER['REQUEST_URI'];
         if (strpos($redirectUrl, '/login') === false) {
