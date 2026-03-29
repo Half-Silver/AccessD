@@ -20,6 +20,7 @@ class PluginManager
     private static $instance = null;
     private $plugins = [];
     private $sidebar;
+    private $pluginPath;
 
     private function __construct()
     {

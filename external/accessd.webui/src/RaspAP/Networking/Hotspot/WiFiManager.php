@@ -524,7 +524,7 @@ class WiFiManager
      */
     public function ensureWpaSupplicant(): void
     {
-        $confPath = '/etc/wpa_supplicant/wpa_supplicant.conf';
+        $confPath = RASPI_WPA_SUPPLICANT_CONFIG;
 
         if (file_exists($confPath)) {
             return;
@@ -543,7 +543,8 @@ CONF;
         file_put_contents($tmpFile, $contents);
         chmod($tmpFile, 0600);
 
-        $cmd = escapeshellcmd("sudo cp $tmpFile $confPath");
+        // Strip sudo as we have a wrapper, but better to use it if it might be needed for the wrapper to work correctly
+        $cmd = "cp " . escapeshellarg($tmpFile) . " " . escapeshellarg($confPath);
         exec($cmd, $output, $exitCode);
         unlink($tmpFile);
 
