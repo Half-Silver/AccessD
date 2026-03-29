@@ -105,11 +105,9 @@ class Sysinfo
     public function systemTemperature()
     {
         $tempPath = "/sys/class/thermal/thermal_zone0/temp";
-        if (!is_readable($tempPath)) {
-            return '0.0';
-        }
-
-        $cpuTemp = file_get_contents($tempPath);
+        // In a snap, even if is_readable passes, reading might fail due to AppArmor.
+        // Use @ to suppress the warning and handle the failure gracefully.
+        $cpuTemp = @file_get_contents($tempPath);
         if ($cpuTemp === false || !is_numeric(trim($cpuTemp))) {
             return '0.0';
         }
