@@ -224,7 +224,7 @@ class DnsmasqManager
         $tempFile = SELF::CONF_TMP; 
 
         $config = join(PHP_EOL, $config);
-        file_put_contents($tempFile, $config);
+        safefilerewrite($tempFile, $config);
         $cmd = sprintf('sudo cp %s %s', escapeshellarg($tempFile), escapeshellarg($configFile));
         exec($cmd, $output, $status);
         if ($status !== 0) {
@@ -253,7 +253,7 @@ class DnsmasqManager
         $tempFile = SELF::CONF_TMP; 
 
         $config = join(PHP_EOL, $config);
-        file_put_contents($tempFile, $config);
+        safefilerewrite($tempFile, $config);
         $cmd = sprintf('sudo cp %s %s', escapeshellarg($tempFile), escapeshellarg($configFile));
         exec($cmd, $output, $status);
         if ($status !== 0) {

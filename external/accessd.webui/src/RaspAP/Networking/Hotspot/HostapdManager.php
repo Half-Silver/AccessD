@@ -279,7 +279,7 @@ class HostapdManager
         $tempFile   = SELF::CONF_TMP;
 
 
-        if (file_put_contents($tempFile, $config) === false) {
+        if (safefilerewrite($tempFile, $config) === false) {
             throw new \RuntimeException("Failed to write temp hostapd config");
         }
 
