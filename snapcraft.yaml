@@ -184,6 +184,7 @@ parts:
       - nodejs
       - npm
     override-build: |
+      cd "$CRAFT_PART_SRC"
       npm install --include=dev
       npm run build
       mkdir -p "$CRAFT_PART_INSTALL/web-new"
