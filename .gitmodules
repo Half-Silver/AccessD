@@ -1,0 +1,3 @@
+[submodule "external/accessd.web"]
+	path = external/accessd.web
+	url = https://github.com/Half-Silver/accessd.web.git
