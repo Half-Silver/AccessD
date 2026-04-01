@@ -141,9 +141,6 @@ parts:
       - wireless-tools
       - iw
       - rfkill
-      - php8.3-cli
-      - php8.3-gettext
-      - php8.3-mbstring
       - procps
       - sysvinit-utils
       - wget
@@ -179,12 +176,6 @@ parts:
     source: templates/
     organize:
       "*": etc/accessd/
-
-  webui:
-    plugin: dump
-    source: external/accessd.webui/
-    organize:
-      "*": external/accessd.webui/
 
   webui-next:
     plugin: nil

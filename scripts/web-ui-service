@@ -51,10 +51,9 @@ start() {
   rm -f "$PID_FILE"
   rm -f "$ENV_FILE"
 
-  ACCESSD_RASPAP_HOST="$bind_host" ACCESSD_RASPAP_PORT="$bind_port" \
-    nohup "$ROOT_DIR/scripts/web-ui-raspap-dev" >>"$LOG_FILE" 2>&1 &
-  local pid=$!
-  echo "$pid" > "$PID_FILE"
+  # Use npm run dev for local webui service
+  (cd "$ROOT_DIR/external/accessd.web" && PORT="$bind_port" HOST="$bind_host" nohup npm run dev >>"$LOG_FILE" 2>&1 & echo $! > "$PID_FILE")
+  local pid=$(cat "$PID_FILE")
   {
     echo "ACCESSD_RASPAP_HOST=$bind_host"
     echo "ACCESSD_RASPAP_PORT=$bind_port"
