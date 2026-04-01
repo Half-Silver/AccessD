@@ -1,0 +1,56 @@
+#!/bin/bash
+set -euo pipefail
+
+SNAP="${SNAP:-/snap/accessd/current}"
+SNAP_COMMON="${SNAP_COMMON:-/var/snap/accessd/common}"
+
+ACCESSD_WEBUI_HOST="${ACCESSD_WEBUI_HOST:-}"
+ACCESSD_WEBUI_PORT="${ACCESSD_WEBUI_PORT:-}"
+
+WEBROOT="$SNAP/web-new"
+
+snapctl_get() {
+  local key="$1"
+  local value
+
+  if ! command -v snapctl >/dev/null 2>&1; then
+    return 1
+  fi
+
+  value="$(snapctl get "$key" 2>/dev/null || true)"
+  case "$value" in
+    ''|null)
+      return 1
+      ;;
+    *)
+      printf '%s\n' "$value"
+      return 0
+      ;;
+  esac
+}
+
+if [ -z "$ACCESSD_WEBUI_HOST" ] && snap_value="$(snapctl_get web-ui.host)"; then
+  ACCESSD_WEBUI_HOST="$snap_value"
+fi
+
+if [ -z "$ACCESSD_WEBUI_PORT" ] && snap_value="$(snapctl_get web-ui.port)"; then
+  ACCESSD_WEBUI_PORT="$snap_value"
+fi
+
+ACCESSD_WEBUI_HOST="${ACCESSD_WEBUI_HOST:-0.0.0.0}"
+ACCESSD_WEBUI_PORT="${ACCESSD_WEBUI_PORT:-8080}"
+
+# Serve the static files from Next.js export
+# We can use python3 -m http.server for simplicity as it's likely available
+# Or if we have php available, we can use it too.
+# Given we have php in stage-packages, we'll use it to keep it consistent.
+
+PHP_BIN="$(find "$SNAP/usr/bin" -maxdepth 1 -type f -name 'php*' 2>/dev/null | sort | head -n 1 || true)"
+if [ -n "$PHP_BIN" ] && [ -x "$PHP_BIN" ]; then
+    exec "$PHP_BIN" \
+      -S "${ACCESSD_WEBUI_HOST}:${ACCESSD_WEBUI_PORT}" \
+      -t "$WEBROOT"
+else
+    # Fallback to python http.server
+    exec python3 -m http.server --bind "$ACCESSD_WEBUI_HOST" --directory "$WEBROOT" "$ACCESSD_WEBUI_PORT"
+fi

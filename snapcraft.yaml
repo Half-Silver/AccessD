@@ -61,10 +61,22 @@ apps:
   web-ui:
     command-chain:
       - bin/setup-env
-    command: bin/web-ui-raspap-daemon
+    command: bin/web-ui-next-daemon
     daemon: simple
     restart-condition: on-failure
     restart-delay: 5s
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      - firewall-control
+
+  api-v1:
+    command-chain:
+      - bin/setup-env
+    command: bin/api-server.py
+    daemon: simple
+    restart-condition: always
     plugs:
       - network
       - network-bind
@@ -136,6 +148,9 @@ parts:
       - sysvinit-utils
       - wget
       - libatm1
+      - python3-fastapi
+      - python3-uvicorn
+      - python3-starlette
     override-build: |
       craftctl default
 
@@ -170,3 +185,15 @@ parts:
     source: external/accessd.webui/
     organize:
       "*": external/accessd.webui/
+
+  webui-next:
+    plugin: nil
+    source: external/accessd.web/
+    build-packages:
+      - nodejs
+      - npm
+    override-build: |
+      npm install --include=dev
+      npm run build
+      mkdir -p "$CRAFT_PART_INSTALL/web-new"
+      cp -a out/* "$CRAFT_PART_INSTALL/web-new/"
