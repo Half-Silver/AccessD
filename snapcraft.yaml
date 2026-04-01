@@ -179,13 +179,16 @@ parts:
 
   webui-next:
     plugin: nil
-    source: https://github.com/Half-Silver/accessd.web.git
-    source-type: git
-    source-tag: main # or a specific commit/tag
+    source: external/accessd.web/
     build-packages:
       - nodejs
       - npm
     override-build: |
+      if [ ! -f "package.json" ]; then
+        echo "ERROR: external/accessd.web/package.json not found!"
+        echo "Did you forget to run 'git submodule update --init --recursive'?"
+        exit 1
+      fi
       npm install --include=dev
       npm run build
       mkdir -p "$CRAFT_PART_INSTALL/web-new"
