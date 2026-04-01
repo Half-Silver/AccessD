@@ -179,12 +179,13 @@ parts:
 
   webui-next:
     plugin: nil
-    source: external/accessd.web/
+    source: https://github.com/Half-Silver/accessd.web.git
+    source-type: git
+    source-tag: main # or a specific commit/tag
     build-packages:
       - nodejs
       - npm
     override-build: |
-      cd "$CRAFT_PART_SRC"
       npm install --include=dev
       npm run build
       mkdir -p "$CRAFT_PART_INSTALL/web-new"
