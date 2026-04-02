@@ -180,8 +180,9 @@ parts:
 
   webui-next:
     plugin: nil
-    source: external/accessd.web/
-    source-type: local
+    source: https://github.com/Half-Silver/accessd.web.git
+    source-type: git
+    source-branch: main
     build-packages:
       - nodejs
       - npm
