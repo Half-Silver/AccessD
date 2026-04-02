@@ -181,6 +181,7 @@ parts:
   webui-next:
     plugin: nil
     source: external/accessd.web/
+    source-type: local
     build-packages:
       - nodejs
       - npm
