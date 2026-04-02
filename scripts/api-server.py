@@ -8,9 +8,10 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 
-# Add the vendored RaspAP modules to path
+# Add the custom API modules to path
 SNAP = os.environ.get('SNAP', '.')
-API_PATH = os.path.join(SNAP, 'external/accessd.webui/api')
+# Inside snap, scripts/api is mapped to bin/api
+API_PATH = os.path.join(SNAP, 'bin/api') if os.environ.get('SNAP') else os.path.join(SNAP, 'scripts/api')
 print(f"Loading API modules from: {API_PATH}")
 if os.path.exists(API_PATH):
     sys.path.append(API_PATH)
