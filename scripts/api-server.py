@@ -27,15 +27,23 @@ try:
     import modules.ap as rasp_ap
     import modules.client as rasp_client
     import modules.networking as rasp_networking
+    import modules.device_rules as device_rules
 except ImportError:
     # Mock modules for local development if not found
     print("Warning: RaspAP modules not found, using mock data")
     class MockModule:
         def __getattr__(self, name):
             return lambda *args, **kwargs: {}
-    rasp_system = rasp_ap = rasp_client = rasp_networking = MockModule()
+    rasp_system = rasp_ap = rasp_client = rasp_networking = device_rules = MockModule()
 
 app = FastAPI(title="AccessD API v1")
+
+# Apply saved device blocklists/speed-limits on startup
+try:
+    if hasattr(device_rules, 'apply_all_startup'):
+        device_rules.apply_all_startup()
+except Exception as e:
+    print(f"Startup Rules Error: {e}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -474,6 +482,37 @@ async def update_qos_config(config: QoSConfig):
     data = config.model_dump()
     _save_qos_config(data)
     return {"status": "ok", "config": data}
+
+# ─── Device Rule Controls (Block / Speed Limits) ──────────────────
+
+class DeviceBlockRequest(BaseModel):
+    mac: str
+    action: str  # "block" or "unblock"
+
+class DeviceSpeedRequest(BaseModel):
+    mac: str
+    ip: str
+    interface: str
+    limit_mbps: float
+
+@app.get("/api/v1/network/devices/limits")
+def get_device_limits():
+    return device_rules.get_limits()
+
+@app.post("/api/v1/network/devices/block")
+def block_device(req: DeviceBlockRequest):
+    if req.action == "block":
+        device_rules.set_block(req.mac, True)
+    elif req.action == "unblock":
+        device_rules.set_block(req.mac, False)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action")
+    return {"status": "success"}
+
+@app.post("/api/v1/network/devices/speed")
+def speed_limit_device(req: DeviceSpeedRequest):
+    device_rules.set_speed_limit(req.mac, req.ip, req.interface, req.limit_mbps)
+    return {"status": "success"}
 
 # ═══════════════════════════════════════════════════════════════════
 
