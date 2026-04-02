@@ -111,8 +111,13 @@ else
     echo "  ✗ dnsmasq is not running"
 fi
 
-if pgrep -f "(accessd\.web-ui|web-ui-raspap-daemon|web-ui-raspap-router\.php)" &>/dev/null; then
-    echo "  ✓ web-ui (Router Dashboard) is running"
+if pgrep -f "(web-ui-next-daemon|api-server\.py)" &>/dev/null; then
+    echo "  ✓ web-ui (Modern Dashboard) is running"
+    if pgrep -f "api-server\.py" &>/dev/null; then
+        echo "  ✓ api-v1 (Backend API) is running"
+    else
+        echo "  ✗ api-v1 (Backend API) is not running"
+    fi
 else
     echo "  ✗ web-ui is not running"
 fi

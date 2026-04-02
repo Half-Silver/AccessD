@@ -40,6 +40,12 @@ fi
 ACCESSD_WEBUI_HOST="${ACCESSD_WEBUI_HOST:-0.0.0.0}"
 ACCESSD_WEBUI_PORT="${ACCESSD_WEBUI_PORT:-8080}"
 
+if [ ! -d "$WEBROOT" ] || [ ! -f "$WEBROOT/index.html" ]; then
+    echo "ERROR: Web UI files not found at $WEBROOT"
+    echo "Ensure the snap was built correctly with the webui-next part."
+    exit 1
+fi
+
 # Serve the static files from Next.js export
 # We can use python3 -m http.server for simplicity as it's likely available
 # Or if we have php available, we can use it too.

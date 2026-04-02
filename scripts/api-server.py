@@ -11,8 +11,11 @@ from typing import List
 # Add the vendored RaspAP modules to path
 SNAP = os.environ.get('SNAP', '.')
 API_PATH = os.path.join(SNAP, 'external/accessd.webui/api')
+print(f"Loading API modules from: {API_PATH}")
 if os.path.exists(API_PATH):
     sys.path.append(API_PATH)
+else:
+    print(f"WARNING: API module path not found: {API_PATH}")
 
 try:
     import modules.system as rasp_system
