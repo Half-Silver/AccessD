@@ -364,8 +364,13 @@ http://localhost:8090
 
 ```
 wifi-router-snap/
+├── docs/                   # Detailed documentation
+│   ├── ARCHITECTURE.md     # System architecture overview
+│   └── BACKEND_API.md      # Backend API specification (v1)
 ├── snapcraft.yaml          # Snap manifest
 ├── scripts/
+│   ├── api-server.py       # FastAPI backend server
+│   ├── api/modules/        # Internal backend modules
 │   ├── router-daemon       # Main router daemon
 │   ├── configure           # Configuration tool
 │   └── status              # Status monitoring
